@@ -1,4 +1,16 @@
 {
+
+  function flat(pred) {
+    return function(val) {
+      if (pred(val)) {
+        return val;
+      }
+      else {
+        throw "contract violation";
+      }
+    };
+  };
+
   function isNumber(x) {
     return typeof(x) == "number";
   }
