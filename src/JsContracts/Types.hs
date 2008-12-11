@@ -12,6 +12,13 @@ data Contract
 
 data Export = Export String Contract deriving (Show)
 
-data InterfaceItem = InterfaceExport Export
-                   | InterfaceStatement ParsedStatement
-                   deriving (Show)
+data InterfaceItem 
+  = InterfaceExport Export
+  | InterfaceStatement { interfaceStatement :: ParsedStatement }
+  deriving (Show)
+
+isInterfaceStatement (InterfaceStatement _) = True
+isInterfaceStatement _ = False
+
+isInterfaceExport (InterfaceExport _) = True
+isInterfaceExport _ = False

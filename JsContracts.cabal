@@ -25,3 +25,4 @@ Library
   Exposed-Modules:
     JsContracts.Parser
     JsContracts.Types
+    JsContracts.Compiler
