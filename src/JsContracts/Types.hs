@@ -1,5 +1,6 @@
 module JsContracts.Types where
 
+import qualified Data.List as L
 import Text.ParserCombinators.Parsec.Pos (SourcePos)
 import WebBits.JavaScript.Parser (ParsedExpression, ParsedStatement)
 
@@ -8,7 +9,13 @@ data Contract
   | FunctionContract SourcePos [Contract] Contract
   | ObjectContract SourcePos [(String,Contract)]
   | NoContract SourcePos
-  deriving (Show)
+
+instance Show Contract where
+  show (FlatContract _ _) = "<flat>"
+  show (FunctionContract _ args result) = 
+    L.concat (L.intersperse " " $ map show args) ++ " -> " ++ show result
+  show (ObjectContract _ _) = "<object-contract>"
+  show (NoContract _) = "<no-contract>"
 
 data Export = Export String Contract deriving (Show)
 

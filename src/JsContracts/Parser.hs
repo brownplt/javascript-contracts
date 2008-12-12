@@ -49,6 +49,7 @@ function = do
                  return (FunctionContract pos [arg] result)) <|>
              return arg -- nonfunction
     args' -> do
+      reserved "->"
       result <- function
       return (FunctionContract pos args' result)
 
