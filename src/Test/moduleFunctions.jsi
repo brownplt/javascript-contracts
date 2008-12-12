@@ -25,3 +25,4 @@ div :: isNumber function(x) { return x != 0; } -> isNumber;
 makeCoords :: isNumber isNumber -> { x: isNumber, y: isNumber };
 
 filter :: (any -> isBool) isArray -> isArray;
+curry :: (isNumber isNumber -> isNumber) isNumber -> isNumber -> isNumber;

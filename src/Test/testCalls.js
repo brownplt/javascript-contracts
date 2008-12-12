@@ -28,7 +28,7 @@ function test(resultThunk,expected) {
   try {
     var result = resultThunk();
     if (deepEqual(result,expected)) {
-      return true;
+      return result;
     }
     else {
       print("Expected " + expected + "; result was " + result);
@@ -66,3 +66,16 @@ test(div(50,5), 10);
 testExn(div(20,0), "flat contract violation");
 
 test(filter(function(x) { return x == 0; }, [1,2,0,3,0]), [0, 0]);
+testExn(filter(function(x) { return x; }, [1,2,3]), "flat contract violation");
+
+test(curry(function(x,y) { return x + y; },50)(20), 70);
+
+testExn(curry(function(x,y) { return "tooth fairy"; },50)(20), 
+        "flat contract violation");
+testExn(curry("tooth fairy",23), "function contract violation");
+testExn(curry(function(x,y) { throw "did not expect an arg"; },"tooth fairy")
+             (23), 
+        "flat contract violation");
+testExn(curry(function(x,y) { throw "did not expect an arg"; },50)
+             ("tooth fairy"), 
+        "flat contract violation");

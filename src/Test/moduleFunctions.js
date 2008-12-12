@@ -20,3 +20,9 @@ this.filter = function(f,arr) {
   }
   return result;
 }
+
+this.curry = function(f,x) {
+  return function(y) {
+    return f(x,y);
+  };
+}
