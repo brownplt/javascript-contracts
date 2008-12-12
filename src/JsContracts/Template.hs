@@ -1,7 +1,10 @@
 module JsContracts.Template 
   ( JavaScriptTemplate
   , exprTemplate
-  , substExpr
+  , substVar
+  , substVarList
+  , substIdList
+  , substFieldList
   , templateExpression
   ) where
 
@@ -35,12 +38,41 @@ renderTemplate (ExpressionTemplate expr) = render (pp expr)
 templateExpression :: JavaScriptTemplate -> ParsedExpression
 templateExpression (ExpressionTemplate expr) = expr
 
-substExpr :: String -- ^free identifier
-          -> ParsedExpression -- ^expression to substitute
-          -> JavaScriptTemplate
-          -> JavaScriptTemplate
-substExpr id expr (ExpressionTemplate body) = 
+substVar :: String -- ^free identifier
+         -> ParsedExpression -- ^expression to substitute
+         -> JavaScriptTemplate
+         -> JavaScriptTemplate
+substVar id expr (ExpressionTemplate body) = 
   ExpressionTemplate (everywhere (mkT subst) body) where
     subst (VarRef _ (Id _ id')) | id' == id = expr
     subst expr = expr
+
+substVarList :: String -- ^identifier in a list
+             -> [ParsedExpression] -- ^list of expressions to substitute
+             -> JavaScriptTemplate
+             -> JavaScriptTemplate
+substVarList id exprs (ExpressionTemplate body) =
+  ExpressionTemplate (everywhere (mkT subst) body) where
+    subst [VarRef _ (Id _ id')] | id' == id = exprs
+    subst lst = lst
+
+substIdList :: String -- ^identifier in a list
+            -> [String] -- ^list of identifiers to substitute
+            -> JavaScriptTemplate
+            -> JavaScriptTemplate
+substIdList id ids (ExpressionTemplate body) =
+  ExpressionTemplate (everywhere (mkT subst) body) where
+    subst [Id _ id'] | id' == id = map (Id noPos) ids
+    subst lst = lst
+
+substFieldList :: String -- ^ placeholder field name
+               -> [(String,ParsedExpression)] -- ^list of fields
+               -> JavaScriptTemplate
+               -> JavaScriptTemplate
+substFieldList fieldId fields (ExpressionTemplate body) = 
+  ExpressionTemplate (everywhere (mkT subst) body) where
+    fields' = map (\(name,expr) -> (PropId noPos (Id noPos name),expr)) fields
+    subst [(PropId _ (Id _ id'), _)] | id' == fieldId = fields'
+    subst lst = lst
+      
 

@@ -73,7 +73,9 @@ flatTemplate =  exprTemplate
 functionTemplate = exprTemplate
   "(function(proc) { \
   \   if (typeof(proc) == \"function\") { \
-  \     return wrappedProc; \
+  \     return function(argNames) { \
+  \       return (resultContract)(proc(argContracts)); \
+  \     }; \
   \   } \
   \   else { \
   \     throw \"function contract violation\"; \
@@ -82,30 +84,26 @@ functionTemplate = exprTemplate
 
 objectTemplate = exprTemplate
   "(function(val) { \
-  \   return wrappedObj; \
+  \   return { fieldNames: \
+  \     (function() { throw \"placeholder not compiled\" })() }; \
   \ });"
 
 -- |Core contract compiler
 cc :: Contract -> ParsedExpression
 cc (FlatContract _ predExpr) =  
-  templateExpression (substExpr "pred" predExpr flatTemplate)
+  templateExpression (substVar "pred" predExpr flatTemplate)
 cc (FunctionContract _ domainContracts rangeContract) = 
-  let isProc = InfixExpr noPos OpEq 
-        (PrefixExpr noPos PrefixTypeof (VarRef noPos $ Id noPos "proc")) 
-        (StringLit noPos "function")
-      argIds = map (\n -> Id noPos $ "arg" ++ show n) $ 
-                 map fst (zip [0..] domainContracts)
-      checkedCall = CallExpr noPos (VarRef noPos $ Id noPos "proc") $
-                      map (\(argId,ctc) -> CallExpr noPos (cc ctc) 
-                                          [VarRef noPos argId])
-                        (zip argIds domainContracts)
-      wrapProc = FuncExpr noPos argIds $ ReturnStmt noPos $ Just $
-                   CallExpr noPos (cc rangeContract) [checkedCall]
-    in templateExpression (substExpr "wrappedProc" wrapProc functionTemplate)
+  let argNames = map (\n -> "arg" ++ show (fst n)) (zip [0..] domainContracts)
+      checkArg (id,ctc) = CallExpr noPos (cc ctc) [VarRef noPos (Id noPos id)]
+      argContracts = map checkArg (zip argNames domainContracts)
+    in templateExpression
+         $ substVar "resultContract" (cc rangeContract)
+         $ substIdList "argNames" argNames
+         $ substVarList "argContracts" argContracts functionTemplate
 cc (ObjectContract _ fields) = 
   let getField id = DotRef noPos (VarRef noPos $ Id noPos "val") (Id noPos id)
       mkProp id = PropId noPos (Id noPos id) 
       fieldContract (id,contract) = 
-        (mkProp id, CallExpr noPos (cc contract) [getField id])
-    in templateExpression $ substExpr "wrappedObj" 
-         (ObjectLit noPos (map fieldContract fields)) objectTemplate
+        (id, CallExpr noPos (cc contract) [getField id])
+    in templateExpression 
+         $ substFieldList "fieldNames" (map fieldContract fields) objectTemplate
