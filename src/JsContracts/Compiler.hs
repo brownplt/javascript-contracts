@@ -81,4 +81,10 @@ cc (FunctionContract _ domainContracts rangeContract) =
     in FuncExpr noPos [Id noPos "proc"] $
          IfStmt noPos isProc (ReturnStmt noPos (Just $ wrapProc))
            (ThrowStmt noPos $ StringLit noPos "contract violation")
-   
+cc (ObjectContract _ fields) = 
+  let getField id = DotRef noPos (VarRef noPos $ Id noPos "val") (Id noPos id)
+      mkProp id = PropId noPos (Id noPos id) 
+      fieldContract (id,contract) = 
+        (mkProp id, CallExpr noPos (cc contract) [getField id])
+    in ParenExpr noPos $ FuncExpr noPos [Id noPos "val"] $ ReturnStmt noPos $
+         Just $ ObjectLit noPos (map fieldContract fields)

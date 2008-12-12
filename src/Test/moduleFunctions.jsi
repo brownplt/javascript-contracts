@@ -14,3 +14,4 @@ add1 :: isNumber -> isNumber;
 sub1Broken :: isNumber -> isNumber;
 add :: isNumber isNumber -> isNumber;
 div :: isNumber function(x) { x != 0; } -> isNumber;
+makeCoords :: isNumber isNumber -> { x: isNumber, y: isNumber };

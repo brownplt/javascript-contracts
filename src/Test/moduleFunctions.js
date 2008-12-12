@@ -6,4 +6,9 @@ this.add = function(x,y) { return x + y; };
 this.div = function(x,y) { return x / y; };
 
 this.privateFunction = function() { 
-  throw "This is a private function"; }
+  throw "This is a private function"; 
+}
+
+this.makeCoords = function(x,y) {
+  return { x: x, y: y };
+}
