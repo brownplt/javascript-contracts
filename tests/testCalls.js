@@ -60,22 +60,22 @@ function testExn(resultThunk,expectedMsg) {
 
 // These get "macro-expanded" to thunk the result.
 test(add(2,3), 5);
-testExn(sub1Broken(10),"flat contract violation");
+testExn(sub1Broken(10),"server");
 test(makeCoords(50,60), { x: 50, y: 60 });
 test(div(50,5), 10);
-testExn(div(20,0), "flat contract violation");
+testExn(div(20,0), "client");
 
 test(filter(function(x) { return x == 0; }, [1,2,0,3,0]), [0, 0]);
-testExn(filter(function(x) { return x; }, [1,2,3]), "flat contract violation");
+testExn(filter(function(x) { return x; }, [1,2,3]), "client");
 
 test(curry(function(x,y) { return x + y; },50)(20), 70);
 
 testExn(curry(function(x,y) { return "tooth fairy"; },50)(20), 
-        "flat contract violation");
-testExn(curry("tooth fairy",23), "function contract violation");
+        "client");
+testExn(curry("tooth fairy",23), "client");
 testExn(curry(function(x,y) { throw "did not expect an arg"; },"tooth fairy")
              (23), 
-        "flat contract violation");
+        "client");
 testExn(curry(function(x,y) { throw "did not expect an arg"; },50)
              ("tooth fairy"), 
-        "flat contract violation");
+        "client");
