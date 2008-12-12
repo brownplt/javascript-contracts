@@ -12,3 +12,11 @@ this.privateFunction = function() {
 this.makeCoords = function(x,y) {
   return { x: x, y: y };
 }
+
+this.filter = function(f,arr) {
+  var result = [ ];
+  for (var i = 0; i < arr.length; i++) {
+    if (f(arr[i])) { result.push(arr[i]); }
+  }
+  return result;
+}

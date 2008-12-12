@@ -1,9 +1,23 @@
-function deepEqual(lhs,rhs) {
+function deepEqual(lhs,rhs) { // somewhat akin to Scheme's equal
   if (typeof(rhs) == "object") {
     for (var ix in rhs) {
       if (!deepEqual(lhs[ix],rhs[ix])) { return false; }
     }
     return true;
+  }
+  if (typeof (rhs) == "array") {
+    if (typeof (lhs) != "array") { 
+      return false; 
+    }
+    else if (lhs.length != rhs.length) {
+      return false;
+    }
+    else {
+      for (var i = 0; i < rhs.length; i++) {
+        if (!deepEq(lhs[i], rhs[i])) { return false; }
+      }
+      return true;
+   }
   }
   else {
     return lhs == rhs;
@@ -33,7 +47,7 @@ function testExn(resultThunk,expectedMsg) {
     print("Expected exception " + expectedMsg + "; evaluated to " + result); 
   }
   catch(e) {
-    if (e == expectedMsg) {
+    if (e.match(expectedMsg)) {
       return true;
     }
     else {
@@ -50,3 +64,5 @@ testExn(sub1Broken(10),"flat contract violation");
 test(makeCoords(50,60), { x: 50, y: 60 });
 test(div(50,5), 10);
 testExn(div(20,0), "flat contract violation");
+
+test(filter(function(x) { return x == 0; }, [1,2,0,3,0]), [0, 0]);

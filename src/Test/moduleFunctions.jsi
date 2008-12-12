@@ -7,6 +7,14 @@
   function isString(x) {
     return typeof(x) == "string";
   }
+
+  function isBool(x) { // perhaps overly strict, but great for testing
+    return x === true || x === false;
+  }
+
+  function any(x) { return true; }
+
+  function isArray(x) { return x instanceof Array; }
 }
 
 thunk :: -> isNumber;
@@ -15,3 +23,5 @@ sub1Broken :: isNumber -> isNumber;
 add :: isNumber isNumber -> isNumber;
 div :: isNumber function(x) { return x != 0; } -> isNumber;
 makeCoords :: isNumber isNumber -> { x: isNumber, y: isNumber };
+
+filter :: (any -> isBool) isArray -> isArray;

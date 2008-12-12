@@ -38,13 +38,15 @@ data JavaScriptTemplate
   | StatementTemplate [ParsedStatement]
 
 exprTemplate :: String -> JavaScriptTemplate
-exprTemplate str = case parse parseAssignExpr "template" str of
-  Left err -> error ("Error parsing template: " ++ show err)
+exprTemplate str = case parse parseAssignExpr "expression template" str of
+  Left err -> error ("Error parsing template: " ++ show err ++ 
+                     "; template:\n\n" ++ str)
   Right expr -> ExpressionTemplate expr
 
 stmtTemplate :: String -> JavaScriptTemplate
-stmtTemplate str = case parse (many1 parseStatement) "template" str of
-  Left err -> error ("Error parsing template: " ++ show err)
+stmtTemplate str = case parse (many1 parseStatement) "statement template" str of
+  Left err -> error ("Error parsing template: " ++ show err ++ 
+                     "; template:\n\n" ++ str)
   Right stmts -> StatementTemplate stmts
   
 renderTemplate :: JavaScriptTemplate -> String

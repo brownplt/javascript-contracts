@@ -64,7 +64,7 @@ flatTemplate =  exprTemplate
   \     return val;    \
   \   }                \
   \   else {           \
-  \     throw \"flat contract violation\"; \
+  \     throw \"flat contract violation; received \" + val; \
   \   }                                    \
   \ })"
 
@@ -89,7 +89,8 @@ objectTemplate = exprTemplate
 -- |Core contract compiler
 cc :: Contract -> ParsedExpression
 cc (FlatContract _ predExpr) =  
-  templateExpression (substVar "pred" predExpr flatTemplate)
+  templateExpression
+    $ substVar "pred" predExpr flatTemplate
 cc (FunctionContract _ domainContracts rangeContract) = 
   let argNames = map (\n -> "arg" ++ show (fst n)) (zip [0..] domainContracts)
       checkArg (id,ctc) = CallExpr noPos (cc ctc) [VarRef noPos (Id noPos id)]
