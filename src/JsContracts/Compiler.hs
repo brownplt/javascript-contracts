@@ -9,6 +9,7 @@ import WebBits.Common (pp)
 import Text.PrettyPrint.HughesPJ (render)
 import JsContracts.Types
 import JsContracts.Parser
+import JsContracts.Template
 
 noPos :: SourcePos
 noPos = initialPos "JsContracts.Compiler"
@@ -59,13 +60,35 @@ compileContract :: String -- ^export name
 compileContract exportId contract guardExpr =
   CallExpr noPos (cc contract) [guardExpr]
 
+flatTemplate =  exprTemplate
+  "(function(val) { \
+  \   if (pred(val)) { \
+  \     return val;    \
+  \   }                \
+  \   else {           \
+  \     throw \"flat contract violation\"; \
+  \   }                                    \
+  \ })"
+
+functionTemplate = exprTemplate
+  "(function(proc) { \
+  \   if (typeof(proc) == \"function\") { \
+  \     return wrappedProc; \
+  \   } \
+  \   else { \
+  \     throw \"function contract violation\"; \
+  \   } \
+  \ })"
+
+objectTemplate = exprTemplate
+  "(function(val) { \
+  \   return wrappedObj; \
+  \ });"
+
 -- |Core contract compiler
 cc :: Contract -> ParsedExpression
-cc (FlatContract _ predExpr) =  ParenExpr noPos $
-  FuncExpr noPos [Id noPos "val"] $
-    IfStmt noPos (CallExpr noPos predExpr [VarRef noPos $ Id noPos "val"])
-      (ReturnStmt noPos $ Just $ VarRef noPos (Id noPos "val"))
-      (ThrowStmt noPos $ StringLit noPos "contract violation")
+cc (FlatContract _ predExpr) =  
+  templateExpression (substExpr "pred" predExpr flatTemplate)
 cc (FunctionContract _ domainContracts rangeContract) = 
   let isProc = InfixExpr noPos OpEq 
         (PrefixExpr noPos PrefixTypeof (VarRef noPos $ Id noPos "proc")) 
@@ -78,13 +101,11 @@ cc (FunctionContract _ domainContracts rangeContract) =
                         (zip argIds domainContracts)
       wrapProc = FuncExpr noPos argIds $ ReturnStmt noPos $ Just $
                    CallExpr noPos (cc rangeContract) [checkedCall]
-    in FuncExpr noPos [Id noPos "proc"] $
-         IfStmt noPos isProc (ReturnStmt noPos (Just $ wrapProc))
-           (ThrowStmt noPos $ StringLit noPos "contract violation")
+    in templateExpression (substExpr "wrappedProc" wrapProc functionTemplate)
 cc (ObjectContract _ fields) = 
   let getField id = DotRef noPos (VarRef noPos $ Id noPos "val") (Id noPos id)
       mkProp id = PropId noPos (Id noPos id) 
       fieldContract (id,contract) = 
         (mkProp id, CallExpr noPos (cc contract) [getField id])
-    in ParenExpr noPos $ FuncExpr noPos [Id noPos "val"] $ ReturnStmt noPos $
-         Just $ ObjectLit noPos (map fieldContract fields)
+    in templateExpression $ substExpr "wrappedObj" 
+         (ObjectLit noPos (map fieldContract fields)) objectTemplate

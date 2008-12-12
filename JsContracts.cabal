@@ -26,6 +26,7 @@ Library
     JsContracts.Parser
     JsContracts.Types
     JsContracts.Compiler
+    JsContracts.Template
 
 Executable jscc
   Main-Is: Jscc.hs
