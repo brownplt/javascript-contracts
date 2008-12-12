@@ -1,3 +1,3 @@
-function thunk() { return 23; }
+this.thunk = function()  { return 23; }
 
-function private() { alert("I am private"); }
+this.private = function() { alert("I am private"); }
