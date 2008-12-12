@@ -10,7 +10,7 @@ Homepage:       http://www.cs.brown.edu/research/plt/
 Stability:      provisional
 Category:       Language
 Build-Type:     Custom
-Synopsis:       JavaScript analysis tools
+Synopsis:       Design-by-contract for JavaScript
 Description:
  
 Library
