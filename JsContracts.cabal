@@ -11,6 +11,9 @@ Stability:      provisional
 Category:       Language
 Build-Type:     Custom
 Synopsis:       Design-by-contract for JavaScript
+Data-Dir:       data
+Data-Files:
+  contracts.js
 Description:
  
 Library
@@ -27,6 +30,8 @@ Library
     JsContracts.Types
     JsContracts.Compiler
     JsContracts.Template
+  Other-Modules:
+    Paths_JsContracts 
 
 Executable jscc
   Main-Is: Jscc.hs

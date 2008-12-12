@@ -1,4 +1,4 @@
-module Test.Parser where
+module Parser where
 
 import Test.HUnit.Base
 import Test.HUnit.Text
@@ -6,11 +6,11 @@ import JsContracts.Parser
 import JsContracts.Compiler
 
 testParse = TestLabel "test parsing a file" $ TestCase $ do
-  parseInterface "Test/basic.jsi"
+  parseInterface "basic.jsi"
   return ()
  
 testCompile = TestLabel "compiling basic.jsi" $ TestCase $ do
-  compile "Test/basic.js" "Test/basic.js"
+  compile "basic.js" "basic.js"
   return ()
   
 allTests = TestList

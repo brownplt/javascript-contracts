@@ -1,6 +1,9 @@
-module JsContracts.Compiler where
+module JsContracts.Compiler 
+  ( compile
+  ) where
 
-import Text.ParserCombinators.Parsec.Pos (initialPos, SourcePos)
+import Paths_JsContracts -- created by Cabal
+import System.FilePath ((</>))
 import WebBits.JavaScript.Parser (ParsedExpression, ParsedStatement,
   parseJavaScriptFromFile)
 import WebBits.JavaScript.Syntax
@@ -32,26 +35,30 @@ makeExportStatement _ = error "makeExportStatement: expected InterfaceItem"
 
 
 encapsulate :: [ParsedStatement]  -- ^implementation
-             -> [InterfaceItem]   -- ^the interface
-             -> ParsedStatement -- ^encapsulated implementation
-encapsulate impl interface =
+            -> [InterfaceItem]   -- ^the interface
+            -> [ParsedStatement] -- ^contract library
+            -> ParsedStatement -- ^encapsulated implementation
+encapsulate impl interface boilerplateStmts =
   let wrappedImpl = wrapImplementation impl
       interfaceStmts = map interfaceStatement $ 
         filter isInterfaceStatement interface
       interfaceExports = filter isInterfaceExport interface
       exportStmts = map makeExportStatement interfaceExports
       outerWrapper = ParenExpr noPos $ FuncExpr noPos [] $ BlockStmt noPos $ 
-        wrappedImpl ++ interfaceStmts ++ exportStmts
+        wrappedImpl ++ boilerplateStmts ++ interfaceStmts ++ exportStmts
     in ExprStmt noPos $ CallExpr noPos outerWrapper []
 
 compile :: String -- ^implementation file
         -> String -- ^interface file
         -> IO String -- ^encapsulated library (as a string)
 compile implementationPath interfacePath = do
+  dataDir <- getDataDir
   impl <- parseJavaScriptFromFile implementationPath
+  boilerplate <- parseJavaScriptFromFile (dataDir</>"contracts.js")
   interface <- parseInterface interfacePath
-  let encapsulated = encapsulate impl interface
-  return $ render $ pp encapsulated 
+  let encapsulated = encapsulate impl interface boilerplate
+  return $ render $ pp encapsulated
+
 
 compileContract :: String -- ^export name
                 -> Contract -> ParsedExpression -> ParsedExpression
