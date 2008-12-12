@@ -1,16 +1,21 @@
 module JsContracts.Template 
   ( JavaScriptTemplate
   , exprTemplate
+  , stmtTemplate
   , substVar
   , substVarList
   , substIdList
   , substFieldList
+  , expandCall
   , templateExpression
+  , noPos
+  , thunkExpr
+  , renderTemplate
   ) where
 
 import Data.Data
 import Data.Generics
-import Text.ParserCombinators.Parsec (parse)
+import Text.ParserCombinators.Parsec (parse, many1)
 import Text.ParserCombinators.Parsec.Pos (initialPos, SourcePos)
 import Text.PrettyPrint.HughesPJ (render)
 import WebBits.JavaScript.PrettyPrint ()
@@ -23,20 +28,41 @@ import WebBits.JavaScript.Instances()
 noPos :: SourcePos
 noPos = initialPos "template"
 
+thunkExpr :: ParsedExpression -> ParsedExpression
+thunkExpr expr = FuncExpr noPos [] (ReturnStmt noPos (Just expr))
+
 -- We may extend this later so that template definitions explicitly
 -- state their free identifiers
-data JavaScriptTemplate = ExpressionTemplate ParsedExpression
+data JavaScriptTemplate
+  = ExpressionTemplate ParsedExpression
+  | StatementTemplate [ParsedStatement]
 
 exprTemplate :: String -> JavaScriptTemplate
 exprTemplate str = case parse parseAssignExpr "template" str of
   Left err -> error ("Error parsing template: " ++ show err)
   Right expr -> ExpressionTemplate expr
 
+stmtTemplate :: String -> JavaScriptTemplate
+stmtTemplate str = case parse (many1 parseStatement) "template" str of
+  Left err -> error ("Error parsing template: " ++ show err)
+  Right stmts -> StatementTemplate stmts
+  
 renderTemplate :: JavaScriptTemplate -> String
 renderTemplate (ExpressionTemplate expr) = render (pp expr)
+renderTemplate (StatementTemplate stmts) = concat $ map (render.pp) stmts
 
 templateExpression :: JavaScriptTemplate -> ParsedExpression
 templateExpression (ExpressionTemplate expr) = expr
+
+expandCall :: String -- ^function name to expand
+           -> ([ParsedExpression] -> [ParsedExpression]) -- ^argument expander
+           -> JavaScriptTemplate
+           -> JavaScriptTemplate
+expandCall functionId expander (StatementTemplate body) =
+  StatementTemplate (everywhere (mkT subst) body) where
+    subst (CallExpr p1 fn@(VarRef p2 (Id p3 id')) args) 
+      | id' == functionId = CallExpr p1 fn (expander args)
+    subst expr = expr
 
 substVar :: String -- ^free identifier
          -> ParsedExpression -- ^expression to substitute

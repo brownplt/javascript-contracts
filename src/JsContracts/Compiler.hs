@@ -11,8 +11,6 @@ import JsContracts.Types
 import JsContracts.Parser
 import JsContracts.Template
 
-noPos :: SourcePos
-noPos = initialPos "JsContracts.Compiler"
 
 wrapImplementation :: [ParsedStatement]
                    -> [ParsedStatement]

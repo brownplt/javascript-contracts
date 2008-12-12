@@ -1,19 +1,52 @@
-if (add(2,3) != 5) { throw "wrong answer"; }
-
-try {
-  sub1Broken(23);
-  throw "expected contract violation";
+function deepEqual(lhs,rhs) {
+  if (typeof(rhs) == "object") {
+    for (var ix in rhs) {
+      if (!deepEqual(lhs[ix],rhs[ix])) { return false; }
+    }
+    return true;
+  }
+  else {
+    return lhs == rhs;
+  }
 }
-catch (_) { }
 
-var pos = makeCoords(50,60);
+function test(resultThunk,expected) {
+  try {
+    var result = resultThunk();
+    if (deepEqual(result,expected)) {
+      return true;
+    }
+    else {
+      print("Expected " + expected + "; result was " + result);
+      throw "test failed";
+    }
+  }
+  catch(e) {
+    print("Expected " + expected + "; exception raised: " + e);
+      throw "test failed";
+  }
+};
 
-if (pos.x != 50 && pos.y != 60) { throw "wrong answer"; }
-
-if (div(50,5) != 10) { throw "wrong answer"; }
-
-try {
-  div(20,0);
-  throw "expected contract violation";
+function testExn(resultThunk,expectedMsg) {
+  try {
+    var result = resultThunk();
+    print("Expected exception " + expectedMsg + "; evaluated to " + result); 
+  }
+  catch(e) {
+    if (e == expectedMsg) {
+      return true;
+    }
+    else {
+     print("Excepted exception " + expectedMsg + "; got exception " + e);
+     throw "test failed";
+    }
+  }
+  throw "test failed";
 }
-catch (_) { }
+
+// These get "macro-expanded" to thunk the result.
+test(add(2,3), 5);
+testExn(sub1Broken(10),"flat contract violation");
+test(makeCoords(50,60), { x: 50, y: 60 });
+test(div(50,5), 10);
+testExn(div(20,0), "flat contract violation");

@@ -10,8 +10,16 @@ import Test.HUnit.Text
 import System.Cmd
 import System.Exit
 import JsContracts.Compiler
+import JsContracts.Template
 
 rhinoJarPath = "/Users/arjun/.local/rhino/js.jar"
+
+expandTests :: String -> String
+expandTests testSuite = renderTemplate
+  $ expandCall "testExn" expandTest
+  $ expandCall "test" expandTest (stmtTemplate testSuite) where
+    expandTest [try,expected] = [thunkExpr try, expected]
+    expandTest _ = error "expandTests: invalid number of arguments to test"
 
 testExecution :: String -- module.js
               -> String -- interactions.js
@@ -20,7 +28,7 @@ testExecution moduleJs interactionsJs = do
   impl <- compile moduleJs (moduleJs ++ "i")
   interactions <- readFile interactionsJs
   let js = "window = { };" ++ impl ++ "with(window) { \n" ++
-           interactions ++ "}\n"
+           expandTests interactions ++ "}\n"
   code <- rawSystem "java" ["-classpath",rhinoJarPath, 
                             "org.mozilla.javascript.tools.shell.Main",
                             "-e",js]
