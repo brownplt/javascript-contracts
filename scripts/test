@@ -4,4 +4,9 @@ if [ -z $BASE ]; then
     BASE=`pwd`;
 fi
 
+if [ -z $CLASSPATH ]; then
+    echo "CLASSPATH  not set. You need to have js.jar in your CLASSAPATH.";
+    exit 1
+fi
+
 JsContracts_datadir=$BASE/data runhaskell $BASE/Setup.lhs test
