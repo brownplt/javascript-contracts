@@ -12,8 +12,6 @@ import System.Exit
 import JsContracts.Compiler
 import JsContracts.Template
 
-rhinoJarPath = "/Users/arjun/.local/rhino/js.jar"
-
 expandTests :: String -> String
 expandTests testSuite = renderTemplate
   $ expandCall "testExn" expandTest
