@@ -51,7 +51,7 @@ stmtTemplate str = case parse (many1 parseStatement) "statement template" str of
   
 renderTemplate :: JavaScriptTemplate -> String
 renderTemplate (ExpressionTemplate expr) = render (pp expr)
-renderTemplate (StatementTemplate stmts) = concat $ map (render.pp) stmts
+renderTemplate (StatementTemplate stmts) = concatMap (render . pp) stmts
 
 templateExpression :: JavaScriptTemplate -> ParsedExpression
 templateExpression (ExpressionTemplate expr) = expr
