@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if [ -z $BASE ]; then
+    BASE=`pwd`;
+fi
+
+JsContracts_datadir=$BASE/data runhaskell $BASE/Setup.lhs test
