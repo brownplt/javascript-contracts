@@ -67,10 +67,14 @@ compileContract exportId contract guardExpr =
                          (Id noPos "guard"))
    [cc contract, guardExpr, StringLit noPos "server", StringLit noPos "client"]
 
-flatTemplate =  exprTemplate "contracts.flat(pred)"
 
+flatTemplate :: JavaScriptTemplate
+flatTemplate = exprTemplate "contracts.flat(pred)"
+
+functionTemplate :: JavaScriptTemplate
 functionTemplate = exprTemplate "contracts.func(contracts)"
 
+objectTemplate :: JavaScriptTemplate
 objectTemplate = exprTemplate "contracts.obj({ fieldNames: 42 })"
 
 -- |Core contract compiler
