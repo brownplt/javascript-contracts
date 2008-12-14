@@ -5,7 +5,7 @@ if [ -z $BASE ]; then
 fi
 
 if [ -z $CLASSPATH ]; then
-    echo "CLASSPATH  not set. You need to have js.jar in your CLASSAPATH.";
+    echo "CLASSPATH not set; you need to have js.jar in your CLASSAPATH.";
     exit 1
 fi
 

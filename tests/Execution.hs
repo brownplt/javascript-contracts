@@ -9,8 +9,15 @@ import Test.HUnit.Base
 import Test.HUnit.Text
 import System.Cmd
 import System.Exit
+
 import JsContracts.Compiler
 import JsContracts.Template
+import JsContracts.Parser
+
+import WebBits.Common ( pp )
+import WebBits.JavaScript.Parser ( parseJavaScriptFromFile )
+
+import Text.PrettyPrint.HughesPJ ( render )
 
 expandTests :: String -> String
 expandTests testSuite = renderTemplate
@@ -22,10 +29,12 @@ expandTests testSuite = renderTemplate
 testExecution :: String -- module.js
               -> String -- interactions.js
               -> Assertion
-testExecution moduleJs interactionsJs = do
-  impl <- compile moduleJs (moduleJs ++ "i")
+testExecution implPath interactionsJs = do
+  impl  <- parseJavaScriptFromFile implPath
+  iface <- parseInterface (implPath ++ "i")
+  impl' <- compile' impl iface
   interactions <- readFile interactionsJs
-  let js = "window = { };" ++ impl ++ "with(window) { \n" ++
+  let js = "window = { };" ++ (render $ pp $ impl') ++ "with(window) { \n" ++
            expandTests interactions ++ "}\n"
   code <- rawSystem "java" ["org.mozilla.javascript.tools.shell.Main","-e",js]
   case code of

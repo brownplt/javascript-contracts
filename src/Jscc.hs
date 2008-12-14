@@ -6,7 +6,13 @@ import System.Environment
 import System.Directory
 import System.FilePath
 import Control.Monad
-import JsContracts.Compiler (compile)
+
+import JsContracts.Compiler ( compile' )
+import JsContracts.Parser
+
+import WebBits.Common ( pp )
+import WebBits.JavaScript.Parser ( parseJavaScriptFromFile )
+import Text.PrettyPrint.HughesPJ ( render )
 
 data Flag
   = Encapsulate
@@ -37,15 +43,17 @@ main = do
     fail "jscc terminated"
   case nonOpts of
     [implPath] -> do
-      let interfacePath = addExtension (dropExtension implPath) "jsi"
+      let ifacePath = addExtension (dropExtension implPath) "jsi"
       exists <- doesFileExist implPath
       unless exists $ do
         fail $ "could not find " ++ implPath
-      exists <- doesFileExist interfacePath
+      exists <- doesFileExist ifacePath
       unless exists $ do
-        fail $ "could not find " ++ interfacePath
-      result <- compile implPath interfacePath
-      putStrLn result
+        fail $ "could not find " ++ ifacePath
+      impl  <- parseJavaScriptFromFile implPath
+      iface <- parseInterface ifacePath
+      result <- compile' impl iface
+      putStrLn $ render $ pp result
       return () 
     otherwise -> do
       putStrLn "expected a single filename.js"

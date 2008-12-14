@@ -1,6 +1,9 @@
 module JsContracts.Compiler 
   ( compile
+  , compile'
   ) where
+
+import Control.Monad
 
 import qualified Data.Map as M
 
@@ -12,7 +15,6 @@ import WebBits.JavaScript.Environment
 import WebBits.JavaScript.Syntax
 import WebBits.JavaScript.PrettyPrint ()
 import WebBits.Common (pp)
-import Text.PrettyPrint.HughesPJ (render)
 import JsContracts.Types
 import JsContracts.Parser
 import JsContracts.Template
@@ -47,11 +49,11 @@ makeExportStatement (InterfaceExport (Export id contract)) =
 makeExportStatement _ = error "makeExportStatement: expected InterfaceItem"
 
 
-encapsulate :: [ParsedStatement]  -- ^implementation
-            -> [InterfaceItem]   -- ^the interface
-            -> [ParsedStatement] -- ^contract library
-            -> ParsedStatement -- ^encapsulated implementation
-encapsulate impl interface boilerplateStmts =
+compile :: [ParsedStatement]  -- ^implementation
+        -> [InterfaceItem]   -- ^the interface
+        -> [ParsedStatement] -- ^contract library
+        -> ParsedStatement -- ^encapsulated implementation
+compile impl interface boilerplateStmts =
   let exportStmts = map makeExportStatement interfaceExports
       exportNames = [n | InterfaceExport (Export n _) <- interfaceExports]
       wrappedImpl = wrapImplementation ((escapeGlobals impl) ++ impl) exportNames
@@ -63,18 +65,12 @@ encapsulate impl interface boilerplateStmts =
         wrappedImpl ++ boilerplateStmts ++ interfaceStmts ++ exportStmts
     in ExprStmt noPos $ CallExpr noPos outerWrapper []
 
-compile :: String -- ^implementation file
-        -> String -- ^interface file
-        -> IO String -- ^encapsulated library (as a string)
-compile implementationPath interfacePath = do
-  dataDir <- getDataDir
-  impl <- parseJavaScriptFromFile implementationPath
-  boilerplate <- parseJavaScriptFromFile (dataDir</>"contracts.js")
-  interface <- parseInterface interfacePath
-  let encapsulated = encapsulate impl interface boilerplate
-  return $ render $ pp encapsulated
+compile' :: [ParsedStatement] -> [InterfaceItem] -> IO ParsedStatement
+compile' impl iface  = liftM (compile impl iface) boilerplate
 
-
+boilerplate :: IO [ParsedStatement]
+boilerplate = getDataDir >>= parseJavaScriptFromFile . (</> "contracts.js")
+    
 compileContract :: String -- ^export name
                 -> Contract -> ParsedExpression -> ParsedExpression
 compileContract exportId contract guardExpr =
