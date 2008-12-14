@@ -10,12 +10,12 @@ testParse = TestLabel "test parsing a file" $ TestCase $ do
   return ()
  
 testCompile = TestLabel "compiling basic.jsi" $ TestCase $ do
-  compile "basic.js" "basic.js"
+  compile "basic.js" "basic.jsi"
   return ()
   
 allTests = TestList
-  [ testParse,
-    testCompile
+  [ testParse
+  , testCompile
   ]
 
 main = return allTests
