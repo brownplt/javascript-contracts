@@ -1,10 +1,10 @@
 Name:           JsContracts
 Version:        0.1
 Cabal-Version:	>= 1.2
-Copyright:      Copyright (c) 2008 Arjun Guha
+Copyright:      Copyright (c) 2008 Arjun Guha and Spiridon Eliopoulos
 License:        LGPL
 License-file:   LICENSE
-Author:         Arjun Guha
+Author:         Arjun Guha and Spiridon Eliopoulos
 Maintainer:     Arjun Guha <arjun@cs.brown.edu>
 Homepage:       http://www.cs.brown.edu/research/plt/
 Stability:      provisional
