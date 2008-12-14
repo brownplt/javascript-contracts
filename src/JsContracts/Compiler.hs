@@ -2,10 +2,13 @@ module JsContracts.Compiler
   ( compile
   ) where
 
+import qualified Data.Map as M
+
 import Paths_JsContracts -- created by Cabal
 import System.FilePath ((</>))
 import WebBits.JavaScript.Parser (ParsedExpression, ParsedStatement,
   parseJavaScriptFromFile)
+import WebBits.JavaScript.Environment
 import WebBits.JavaScript.Syntax
 import WebBits.JavaScript.PrettyPrint ()
 import WebBits.Common (pp)
@@ -15,15 +18,25 @@ import JsContracts.Parser
 import JsContracts.Template
 
 
-wrapImplementation :: [ParsedStatement]
-                   -> [ParsedStatement]
-wrapImplementation impl =
-  let f = ParenExpr noPos $ FuncExpr noPos [] (BlockStmt noPos impl)
-      apply = DotRef noPos f (Id noPos "apply")
-      def = CallExpr noPos apply [VarRef noPos (Id noPos "impl"), 
-                                  ArrayLit noPos []]
-      decl = VarDecl noPos (Id noPos "impl") (Just $ ObjectLit noPos [])
-    in [VarDeclStmt noPos [decl], ExprStmt noPos def]
+
+--wrapImplementation :: [ParsedStatement] -> [ParsedStatement]
+wrapImplementation impl names = 
+    [VarDeclStmt noPos [implDecl], ExprStmt noPos callThunkedImpl]
+    where 
+        implDecl = VarDecl noPos (Id noPos "impl") (Just $ ObjectLit noPos [])
+        implExport = 
+            [ExprStmt noPos $ AssignExpr noPos OpAssign
+                (DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos n))
+                (VarRef noPos (Id noPos n))
+                | n <- names ]
+        callThunkedImpl = CallExpr noPos 
+            (ParenExpr noPos (FuncExpr noPos [Id noPos "impl"] (BlockStmt noPos (impl ++ implExport))))
+            [VarRef noPos (Id noPos "impl")]
+
+escapeGlobals :: [ParsedStatement] -> [ParsedStatement]
+escapeGlobals impl = [VarDeclStmt noPos [VarDecl noPos (Id noPos s) Nothing] | s <- M.keys globals]
+    where (_, globals, _) = staticEnvironment impl
+
 
 makeExportStatement :: InterfaceItem -> ParsedStatement
 makeExportStatement (InterfaceExport (Export id contract)) = 
@@ -39,11 +52,13 @@ encapsulate :: [ParsedStatement]  -- ^implementation
             -> [ParsedStatement] -- ^contract library
             -> ParsedStatement -- ^encapsulated implementation
 encapsulate impl interface boilerplateStmts =
-  let wrappedImpl = wrapImplementation impl
+  let exportStmts = map makeExportStatement interfaceExports
+      exportNames = [n | InterfaceExport (Export n _) <- interfaceExports]
+      wrappedImpl = wrapImplementation ((escapeGlobals impl) ++ impl) exportNames
       interfaceStmts = map interfaceStatement $ 
         filter isInterfaceStatement interface
       interfaceExports = filter isInterfaceExport interface
-      exportStmts = map makeExportStatement interfaceExports
+
       outerWrapper = ParenExpr noPos $ FuncExpr noPos [] $ BlockStmt noPos $ 
         wrappedImpl ++ boilerplateStmts ++ interfaceStmts ++ exportStmts
     in ExprStmt noPos $ CallExpr noPos outerWrapper []
