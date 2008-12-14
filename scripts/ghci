@@ -1,0 +1,22 @@
+#!/bin/sh
+
+if [ -z $BASE ]; then
+    BASE=`pwd`;
+fi
+
+if [ -z $1 ]; then
+    MODE="obj";
+else
+    MODE=$1;
+fi
+
+OBJS=$BASE/dist/build/HSJsContracts-0.1.o
+SRCS=$BASE/dist/build/autogen:$BASE/src
+
+if [ $MODE = "obj" ]; then
+    # You need to ':m +' the modules you want after this.
+    JsContracts_datadir=$BASE/data ghci -package WebBits $OBJS; 
+elif [ $MODE = "src" ]; then
+    # You need to ':load' the modules you want after this.
+    JSContracts_datadir=$BASE/data ghci -package WebBits -i$SRCS;
+fi
