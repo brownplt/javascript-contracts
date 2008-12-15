@@ -30,9 +30,10 @@ wrapImplementation impl names =
             (DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos n))
             (VarRef noPos (Id noPos n))
             | n <- names ]
-    callThunkedImpl = CallExpr noPos $ ParenExpr noPos $ FuncExpr noPos 
-      [Id noPos "impl"] (BlockStmt noPos (impl ++ implExport))
-        [VarRef noPos (Id noPos "impl")]
+    callThunkedImpl = CallExpr noPos 
+      (ParenExpr noPos $ FuncExpr noPos [Id noPos "impl"] 
+         (BlockStmt noPos (impl ++ implExport)))
+      [VarRef noPos (Id noPos "impl")]
   
 escapeGlobals :: [ParsedStatement] -> [ParsedStatement]
 escapeGlobals impl = 
