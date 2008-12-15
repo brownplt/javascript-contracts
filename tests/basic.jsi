@@ -20,6 +20,8 @@
   }
 }
 
+coords = { x : isNumber, y : isNumber };
+
 thunk :: -> isNumber;
 add1 :: isNumber -> isNumber;
 sub1 :: isNumber -> isNumber;

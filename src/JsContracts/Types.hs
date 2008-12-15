@@ -17,15 +17,14 @@ instance Show Contract where
   show (ObjectContract _ _) = "<object-contract>"
   show (NoContract _) = "<no-contract>"
 
-data Export = Export String Contract deriving (Show)
-
 data InterfaceItem 
-  = InterfaceExport Export
+  = InterfaceExport String Contract
+  | InterfaceAlias String Contract
   | InterfaceStatement { interfaceStatement :: ParsedStatement }
   deriving (Show)
 
 isInterfaceStatement (InterfaceStatement _) = True
 isInterfaceStatement _ = False
 
-isInterfaceExport (InterfaceExport _) = True
+isInterfaceExport (InterfaceExport{}) = True
 isInterfaceExport _ = False

@@ -15,12 +15,14 @@ import JsContracts.Types
   interface = interfaceItem *
 
   interfaceItem = identifier :: contract;
+                | identifier = contract;
                 | blockStmt
   
   function = nonFunction * -> function
            | nonFunction
 
   nonFunction = flat
+              | contractLabel
               | object
               | ( function )
 
@@ -75,19 +77,18 @@ flat = do
   expr <- jsExpr <?> "JavaScript expression"
   return (FlatContract pos expr)
        
-export :: CharParser st Export
-export = do
-  id <- identifier
-  reservedOp "::"
-  ctc <- contract
-  return (Export id ctc)
-
 interface :: CharParser st [InterfaceItem]
 interface =
-  (do e <- export
+  (do id <- identifier
+      item <- (do reservedOp "::"
+                  ctc <- contract
+                  return (InterfaceExport id ctc)) <|>
+              (do reservedOp "="
+                  ctc <- contract
+                  return (InterfaceAlias id ctc))
       reservedOp ";"
       rest <- interface
-      return $ (InterfaceExport e):rest) <|>
+      return (item:rest)) <|>
   (do stmt <- parseBlockStmt
       rest <- interface
       return $ (InterfaceStatement stmt):rest) <|>

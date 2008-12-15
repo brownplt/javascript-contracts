@@ -41,7 +41,7 @@ escapeGlobals impl = [VarDeclStmt noPos [VarDecl noPos (Id noPos s) Nothing] | s
 
 
 makeExportStatement :: InterfaceItem -> ParsedStatement
-makeExportStatement (InterfaceExport (Export id contract)) = 
+makeExportStatement (InterfaceExport id contract) = 
   ExprStmt noPos $ AssignExpr noPos OpAssign 
     (DotRef noPos (VarRef noPos (Id noPos "window")) (Id noPos id))
     (compileContract id contract $ 
@@ -55,7 +55,7 @@ compile :: [ParsedStatement]  -- ^implementation
         -> ParsedStatement -- ^encapsulated implementation
 compile impl interface boilerplateStmts =
   let exportStmts = map makeExportStatement interfaceExports
-      exportNames = [n | InterfaceExport (Export n _) <- interfaceExports]
+      exportNames = [n | InterfaceExport n _ <- interfaceExports]
       wrappedImpl = wrapImplementation ((escapeGlobals impl) ++ impl) exportNames
       interfaceStmts = map interfaceStatement $ 
         filter isInterfaceStatement interface
