@@ -23,20 +23,20 @@ import JsContracts.Template
 
 --wrapImplementation :: [ParsedStatement] -> [ParsedStatement]
 wrapImplementation impl names = 
-    [VarDeclStmt noPos [implDecl], ExprStmt noPos callThunkedImpl]
-    where 
-        implDecl = VarDecl noPos (Id noPos "impl") (Just $ ObjectLit noPos [])
-        implExport = 
-            [ExprStmt noPos $ AssignExpr noPos OpAssign
-                (DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos n))
-                (VarRef noPos (Id noPos n))
-                | n <- names ]
-        callThunkedImpl = CallExpr noPos 
-            (ParenExpr noPos (FuncExpr noPos [Id noPos "impl"] (BlockStmt noPos (impl ++ implExport))))
-            [VarRef noPos (Id noPos "impl")]
-
+  [VarDeclStmt noPos [implDecl], ExprStmt noPos callThunkedImpl] where
+    implDecl = VarDecl noPos (Id noPos "impl") (Just $ ObjectLit noPos [])
+    implExport = 
+        [ExprStmt noPos $ AssignExpr noPos OpAssign
+            (DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos n))
+            (VarRef noPos (Id noPos n))
+            | n <- names ]
+    callThunkedImpl = CallExpr noPos $ ParenExpr noPos $ FuncExpr noPos 
+      [Id noPos "impl"] (BlockStmt noPos (impl ++ implExport))
+        [VarRef noPos (Id noPos "impl")]
+  
 escapeGlobals :: [ParsedStatement] -> [ParsedStatement]
-escapeGlobals impl = [VarDeclStmt noPos [VarDecl noPos (Id noPos s) Nothing] | s <- M.keys globals]
+escapeGlobals impl = 
+  [VarDeclStmt noPos [VarDecl noPos (Id noPos s) Nothing] | s <- M.keys globals]
     where (_, globals, _) = staticEnvironment impl
 
 
@@ -48,10 +48,19 @@ makeExportStatement (InterfaceExport id contract) =
        DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos id))
 makeExportStatement _ = error "makeExportStatement: expected InterfaceItem"
 
+aliasTemplate = stmtTemplate
+  "var alias = { }; \
+  \(function() { \
+  \   var tmp = contract; \
+  \   alias.client = tmp.client; \
+  \   alias.server = tmp.server; \
+  \})();"
 
-compileAlias :: InterfaceItem -> ParsedStatement
-compileAlias (InterfaceAlias id contract) = 
-  VarDeclStmt noPos [VarDecl noPos (Id noPos id) (Just (cc contract))]
+compileAlias :: InterfaceItem -> [ParsedStatement]
+compileAlias (InterfaceAlias id contract) = templateStatements 
+  $ renameVar "alias"  id
+  $ substVar "contract" (cc contract)
+  aliasTemplate
 compileAlias _ = error "compileAlias: expected an InterfaceAlias"
 
 compile :: [ParsedStatement]  -- ^implementation
@@ -62,8 +71,8 @@ compile impl interface boilerplateStmts =
   let exportStmts = map makeExportStatement interfaceExports
       exportNames = [n | InterfaceExport n _ <- interfaceExports]
       aliases = filter isInterfaceAlias interface
-      aliasStmts = map compileAlias aliases
-      wrappedImpl = wrapImplementation ((escapeGlobals impl) ++ impl) exportNames
+      aliasStmts = concatMap compileAlias aliases
+      wrappedImpl = wrapImplementation (escapeGlobals impl ++ impl) exportNames
       interfaceStmts = map interfaceStatement $ 
         filter isInterfaceStatement interface
       interfaceExports = filter isInterfaceExport interface

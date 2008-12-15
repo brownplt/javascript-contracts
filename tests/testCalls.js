@@ -80,4 +80,4 @@ testExn(curry(function(x,y) { throw "did not expect an arg"; },50)
         "client");
 
 var myCoords = test(makeCoords(50,60), { x: 50, y: 60 });
-// test(myCoords.moveRight(), { x: 51, y: 60 });
+test(myCoords.moveRight(), { x: 51, y: 60 });

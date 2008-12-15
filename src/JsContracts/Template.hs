@@ -11,6 +11,8 @@ module JsContracts.Template
   , noPos
   , thunkExpr
   , renderTemplate
+  , renameVar
+  , templateStatements
   ) where
 
 import Data.Data
@@ -56,6 +58,9 @@ renderTemplate (StatementTemplate stmts) = concatMap (render . pp) stmts
 templateExpression :: JavaScriptTemplate -> ParsedExpression
 templateExpression (ExpressionTemplate expr) = expr
 
+templateStatements :: JavaScriptTemplate -> [ParsedStatement]
+templateStatements (StatementTemplate stmts) = stmts
+
 expandCall :: String -- ^function name to expand
            -> ([ParsedExpression] -> [ParsedExpression]) -- ^argument expander
            -> JavaScriptTemplate
@@ -66,14 +71,38 @@ expandCall functionId expander (StatementTemplate body) =
       | id' == functionId = CallExpr p1 fn (expander args)
     subst expr = expr
 
+renameVar :: String -- ^original id
+          -> String -- ^new id
+          -> JavaScriptTemplate
+          -> JavaScriptTemplate
+renameVar idOld idNew body =
+  let -- explicit signatures needed for generics
+      substExpr :: ParsedExpression -> ParsedExpression
+      substExpr (VarRef p1 (Id p2 thisId))
+        | thisId == idOld = VarRef p1 (Id p2 idNew)
+      substExpr v = v
+      substDecl :: VarDecl SourcePos -> VarDecl SourcePos
+      substDecl (VarDecl p1 (Id p2 thisId) val)
+        | thisId == idOld = VarDecl p1 (Id p2 idNew) val
+      substDecl v = v
+    in case body of
+         ExpressionTemplate body ->  ExpressionTemplate $
+           everywhere ((mkT substDecl) . (mkT substExpr)) body
+         StatementTemplate stmts -> StatementTemplate $
+           everywhere (mkT substDecl . mkT substExpr) stmts
+
 substVar :: String -- ^free identifier
          -> ParsedExpression -- ^expression to substitute
          -> JavaScriptTemplate
          -> JavaScriptTemplate
-substVar id expr (ExpressionTemplate body) = 
-  ExpressionTemplate (everywhere (mkT subst) body) where
-    subst (VarRef _ (Id _ id')) | id' == id = expr
-    subst expr = expr
+substVar id expr body = 
+  let subst (VarRef _ (Id _ id')) | id' == id = expr
+      subst expr = expr
+    in case body of
+         ExpressionTemplate body -> 
+           ExpressionTemplate (everywhere (mkT subst) body)
+         StatementTemplate stmts ->
+           StatementTemplate (everywhere (mkT subst) stmts)
 
 substVarList :: String -- ^identifier in a list
              -> [ParsedExpression] -- ^list of expressions to substitute
