@@ -9,8 +9,14 @@ privateFunction = function() {
   throw "This is a private function"; 
 }
 
+moveRight = function() {
+  var moved = makeCoords(this.x, this.y);
+  moved.x = moved.x + 1;
+  return moved;
+}
+
 makeCoords = function(x,y) {
-  return { x: x, y: y };
+  return { x: x, y: y, moveRight : moveRight };
 }
 
 filter = function(f,arr) {

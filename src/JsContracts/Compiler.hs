@@ -49,6 +49,11 @@ makeExportStatement (InterfaceExport id contract) =
 makeExportStatement _ = error "makeExportStatement: expected InterfaceItem"
 
 
+compileAlias :: InterfaceItem -> ParsedStatement
+compileAlias (InterfaceAlias id contract) = 
+  VarDeclStmt noPos [VarDecl noPos (Id noPos id) (Just (cc contract))]
+compileAlias _ = error "compileAlias: expected an InterfaceAlias"
+
 compile :: [ParsedStatement]  -- ^implementation
         -> [InterfaceItem]   -- ^the interface
         -> [ParsedStatement] -- ^contract library
@@ -56,13 +61,16 @@ compile :: [ParsedStatement]  -- ^implementation
 compile impl interface boilerplateStmts =
   let exportStmts = map makeExportStatement interfaceExports
       exportNames = [n | InterfaceExport n _ <- interfaceExports]
+      aliases = filter isInterfaceAlias interface
+      aliasStmts = map compileAlias aliases
       wrappedImpl = wrapImplementation ((escapeGlobals impl) ++ impl) exportNames
       interfaceStmts = map interfaceStatement $ 
         filter isInterfaceStatement interface
       interfaceExports = filter isInterfaceExport interface
 
       outerWrapper = ParenExpr noPos $ FuncExpr noPos [] $ BlockStmt noPos $ 
-        wrappedImpl ++ boilerplateStmts ++ interfaceStmts ++ exportStmts
+        wrappedImpl ++ boilerplateStmts ++ interfaceStmts ++ aliasStmts ++
+        exportStmts
     in ExprStmt noPos $ CallExpr noPos outerWrapper []
 
 compile' :: [ParsedStatement] -> [InterfaceItem] -> IO ParsedStatement
@@ -104,3 +112,4 @@ cc (ObjectContract _ fields) =
       fieldContract (id,contract) = (id, cc contract)
     in templateExpression 
          $ substFieldList "fieldNames" (map fieldContract fields) objectTemplate
+cc (NamedContract _ name) = VarRef noPos (Id noPos name)

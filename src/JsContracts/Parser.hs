@@ -22,7 +22,7 @@ import JsContracts.Types
            | nonFunction
 
   nonFunction = flat
-              | contractLabel
+              | :contractLabel
               | object
               | ( function )
 
@@ -55,7 +55,18 @@ function = do
       result <- function
       return (FunctionContract pos args' result)
 
-nonFunction = parens function <|> object <|> flat
+namedContract :: CharParser st Contract
+namedContract = do
+  char ':'
+  pos <- getPosition
+  -- same as JavaScript (from WebBits' lexer)
+  idFirst <- letter <|> oneOf "$_"
+  idRest <- many1 (alphaNum <|> oneOf "$_")
+  whiteSpace
+  return (NamedContract pos (idFirst:idRest))
+  
+
+nonFunction = parens function <|> object <|> namedContract <|> flat 
 
 field :: CharParser st (String,Contract)
 field = do

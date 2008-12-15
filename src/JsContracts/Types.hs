@@ -6,12 +6,14 @@ import WebBits.JavaScript.Parser (ParsedExpression, ParsedStatement)
 
 data Contract
   = FlatContract SourcePos ParsedExpression
+  | NamedContract SourcePos String
   | FunctionContract SourcePos [Contract] Contract
   | ObjectContract SourcePos [(String,Contract)]
   | NoContract SourcePos
 
 instance Show Contract where
   show (FlatContract _ _) = "<flat>"
+  show (NamedContract _ s) = ':':s
   show (FunctionContract _ args result) = 
     L.concat (L.intersperse " " $ map show args) ++ " -> " ++ show result
   show (ObjectContract _ _) = "<object-contract>"
@@ -28,3 +30,6 @@ isInterfaceStatement _ = False
 
 isInterfaceExport (InterfaceExport{}) = True
 isInterfaceExport _ = False
+
+isInterfaceAlias (InterfaceAlias{}) = True
+isInterfaceAlias _ = False

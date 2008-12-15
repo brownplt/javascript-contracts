@@ -61,7 +61,6 @@ function testExn(resultThunk,expectedMsg) {
 // These get "macro-expanded" to thunk the result.
 test(add(2,3), 5);
 testExn(sub1Broken(10),"server");
-test(makeCoords(50,60), { x: 50, y: 60 });
 test(div(50,5), 10);
 testExn(div(20,0), "client");
 
@@ -79,3 +78,6 @@ testExn(curry(function(x,y) { throw "did not expect an arg"; },"tooth fairy")
 testExn(curry(function(x,y) { throw "did not expect an arg"; },50)
              ("tooth fairy"), 
         "client");
+
+var myCoords = test(makeCoords(50,60), { x: 50, y: 60 });
+// test(myCoords.moveRight(), { x: 51, y: 60 });

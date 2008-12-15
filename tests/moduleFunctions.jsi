@@ -17,12 +17,17 @@
   function isArray(x) { return x instanceof Array; }
 }
 
+coords = { x : isNumber, 
+           y : isNumber,
+           moveRight : -> :coords
+         };
+
 thunk :: -> isNumber;
 add1 :: isNumber -> isNumber;
 sub1Broken :: isNumber -> isNumber;
 add :: isNumber isNumber -> isNumber;
 div :: isNumber function(x) { return x != 0; } -> isNumber;
-makeCoords :: isNumber isNumber -> { x: isNumber, y: isNumber };
+makeCoords :: isNumber isNumber -> :coords;
 
 filter :: (any -> isBool) isArray -> isArray;
 curry :: (isNumber isNumber -> isNumber) isNumber -> isNumber -> isNumber;
