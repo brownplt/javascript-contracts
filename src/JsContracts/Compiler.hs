@@ -35,10 +35,12 @@ wrapImplementation impl names =
          (BlockStmt noPos (impl ++ implExport)))
       [VarRef noPos (Id noPos "impl")]
   
-escapeGlobals :: [ParsedStatement] -> [ParsedStatement]
-escapeGlobals impl = 
-  [VarDeclStmt noPos [VarDecl noPos (Id noPos s) Nothing] | s <- M.keys globals]
-    where (_, globals, _) = staticEnvironment impl
+escapeGlobals :: [ParsedStatement] -> [String] -> [ParsedStatement]
+escapeGlobals impl exportNames = 
+  [VarDeclStmt noPos [VarDecl noPos (Id noPos s) Nothing] | s <- exportedGlobals]
+    where (_, globalMap, _) = staticEnvironment impl
+          allGlobals = M.keys globalMap
+          exportedGlobals = filter (`elem` exportNames) allGlobals 
 
 
 makeExportStatement :: InterfaceItem -> ParsedStatement
@@ -73,7 +75,8 @@ compile impl interface boilerplateStmts =
       exportNames = [n | InterfaceExport n _ <- interfaceExports]
       aliases = filter isInterfaceAlias interface
       aliasStmts = concatMap compileAlias aliases
-      wrappedImpl = wrapImplementation (escapeGlobals impl ++ impl) exportNames
+      wrappedImpl = wrapImplementation (escapeGlobals impl exportNames ++ impl)
+                                        exportNames
       interfaceStmts = map interfaceStatement $ 
         filter isInterfaceStatement interface
       interfaceExports = filter isInterfaceExport interface
