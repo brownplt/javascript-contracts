@@ -1,10 +1,50 @@
-var boilerplate = true;
-
-
 var contracts = { };
+
+contracts.map = function(f,arr) {
+  var dest = [ ];
+  for (var i = 0; i < arr.length; i++) {
+    dest.push(f(arr[i]));
+  }
+  return dest;
+};
+
 contracts.blame = function(x) {
   throw x;
 }
+
+contracts.fixedArray = function() {
+  var elts = arguments;
+  return {
+    server: function(s) {
+      return function(val) {
+        if (val instanceof Array && val.length == elts.length) {
+          var result = [ ];
+          for (var i = 0; i < elts.length; i++) {
+            result.push(elts[i].server(s)(val[i]));
+          }
+          return result;
+        }
+        else {
+          contracts.blame(s);
+        }
+      };
+    },
+    client: function(s) {
+      return function(val) {
+        if (val instanceof Array && val.length == elts.length) {
+          var result = [ ];
+          for (var i = 0; i < elts.length; i++) {
+            result.push(elts[i].client(s)(val[i]));
+          }
+          return result;
+        }
+        else {
+          return val;
+        }
+      }
+    }
+  };
+};
 
 contracts.flat = function(pred) {
   return {

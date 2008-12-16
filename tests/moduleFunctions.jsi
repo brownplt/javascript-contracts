@@ -35,3 +35,4 @@ makeCoords :: num num -> coords;
 
 filter :: (:any -> :isBool) :isArray -> :isArray;
 curry :: (:isNumber num -> num) num -> num -> num;
+mkPair :: num num -> [ num, num ];

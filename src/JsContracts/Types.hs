@@ -8,7 +8,8 @@ data Contract
   = FlatContract SourcePos ParsedExpression
   | NamedContract SourcePos String
   | FunctionContract SourcePos [Contract] Contract
-  | ConstructorContract SourcePos [Contract]
+  | ConstructorContract SourcePos String [Contract]
+  | FixedArrayContract SourcePos [Contract]
   | ObjectContract SourcePos [(String,Contract)]
   | NoContract SourcePos
 
@@ -17,6 +18,8 @@ instance Show Contract where
   show (NamedContract _ s) = ':':s
   show (FunctionContract _ args result) = 
     L.concat (L.intersperse " " $ map show args) ++ " -> " ++ show result
+  show (ConstructorContract _ name args) = name ++ "(" ++
+    concat (L.intersperse "," (map show args)) ++ ")"
   show (ObjectContract _ _) = "<object-contract>"
   show (NoContract _) = "<no-contract>"
 

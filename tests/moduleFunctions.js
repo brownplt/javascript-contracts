@@ -32,3 +32,7 @@ curry = function(f,x) {
     return f(x,y);
   };
 }
+
+mkPair = function(x,y) {
+  return [x,y];
+};

@@ -5,8 +5,8 @@ function deepEqual(lhs,rhs) { // somewhat akin to Scheme's equal
     }
     return true;
   }
-  if (typeof (rhs) == "array") {
-    if (typeof (lhs) != "array") { 
+  if (rhs instanceof Array) {
+    if (!(lhs instanceof Array)) {
       return false; 
     }
     else if (lhs.length != rhs.length) {
@@ -81,3 +81,5 @@ testExn(curry(function(x,y) { throw "did not expect an arg"; },50)
 
 var myCoords = test(makeCoords(50,60), { x: 50, y: 60 });
 test(myCoords.moveRight(), { x: 51, y: 60 });
+
+test(mkPair(23,545), [23,545]);

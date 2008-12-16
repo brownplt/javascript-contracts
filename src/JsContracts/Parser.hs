@@ -26,6 +26,7 @@ import JsContracts.Types
               | :customConstructor(contract ,*)
               | object
               | ( function )
+              | [ contract ,* ] -- fixed length array
 
   flat = jsExpr
 
@@ -62,11 +63,25 @@ namedContract = do
   pos <- getPosition
   -- same as JavaScript (from WebBits' lexer)
   idRest <- many1 (alphaNum <|> oneOf "$_")
-  whiteSpace
-  return (NamedContract pos (idFirst:idRest))
+  let name = idFirst:idRest
+  let constr = do
+        args <- parens $ many1 contract
+        return (ConstructorContract pos name args)
+  let named = do
+        whiteSpace
+        return (NamedContract pos name)
+  constr <|> named
   
 
-nonFunction = parens function <|> object <|> namedContract <|> flat 
+nonFunction = parens function <|> object <|> namedContract <|> array <|> flat 
+
+array :: CharParser st Contract
+array = do
+  pos <- getPosition
+  reservedOp "["
+  elts <- contract `sepBy1` comma <?> "elements in an array contract"
+  reservedOp "]"
+  return (FixedArrayContract pos elts)
 
 field :: CharParser st (String,Contract)
 field = do
