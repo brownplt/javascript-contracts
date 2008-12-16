@@ -137,7 +137,7 @@ compileContract :: String -- ^export name
 compileContract exportId contract guardExpr =
   CallExpr noPos (DotRef noPos (VarRef noPos (Id noPos "contracts")) 
                          (Id noPos "guard"))
-   [cc contract, guardExpr, StringLit noPos "server", StringLit noPos "client"]
+   [cc contract, guardExpr, StringLit noPos exportId, StringLit noPos "client"]
 
 
 flatTemplate :: JavaScriptTemplate

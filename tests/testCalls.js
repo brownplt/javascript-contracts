@@ -60,7 +60,7 @@ function testExn(resultThunk,expectedMsg) {
 
 // These get "macro-expanded" to thunk the result.
 test(add(2,3), 5);
-testExn(sub1Broken(10),"server");
+testExn(sub1Broken(10),"sub1Broken");
 test(div(50,5), 10);
 testExn(div(20,0), "client");
 
