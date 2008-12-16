@@ -1,4 +1,4 @@
-module JsContracts.Compiler 
+module JsContracts.Compiler where
   ( compile
   , compile'
   ) where
@@ -21,7 +21,7 @@ import JsContracts.Template
 
 
 
---wrapImplementation :: [ParsedStatement] -> [ParsedStatement]
+wrapImplementation :: [ParsedStatement] -> [String] -> [ParsedStatement]
 wrapImplementation impl names = 
   [VarDeclStmt noPos [implDecl], ExprStmt noPos callThunkedImpl] where
     implDecl = VarDecl noPos (Id noPos "impl") (Just $ ObjectLit noPos [])
