@@ -15,6 +15,31 @@
   function any(x) { return true; }
 
   function isArray(x) { return x instanceof Array; }
+
+  var customArrayOf = function(eltContract) {
+    return {
+      server: function(s) {
+        return function(val) {
+          if (val instanceof Array) {
+            return contracts.map(eltContract.server(s),val);
+          }
+          else {
+            contracts.blame("customArrayOf violated by " + s);
+          }
+        };
+      },
+      client: function(s) {
+        return function(val) {
+          if (val instanceof Array) {
+            return contracts.map(eltContract.client(s),val);
+          }
+          else {
+            return val;
+          }
+        };
+      }
+    };
+  };
 }
 
 // Prefix a colon to build a flat contract, where the expression on the right
@@ -36,3 +61,4 @@ makeCoords :: num num -> coords;
 filter :: (:any -> :isBool) :isArray -> :isArray;
 curry :: (:isNumber num -> num) num -> num -> num;
 mkPair :: num num -> [ num, num ];
+iota :: num -> customArrayOf(num);

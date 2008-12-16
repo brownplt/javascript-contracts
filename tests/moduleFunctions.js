@@ -36,3 +36,11 @@ curry = function(f,x) {
 mkPair = function(x,y) {
   return [x,y];
 };
+
+var iota = function(n) {
+  var result = [ ];
+  for (var i = 0; i < n; i++) {
+    result[i] = i;
+  }
+  return result;
+};

@@ -83,3 +83,4 @@ var myCoords = test(makeCoords(50,60), { x: 50, y: 60 });
 test(myCoords.moveRight(), { x: 51, y: 60 });
 
 test(mkPair(23,545), [23,545]);
+test(iota(10),[0,1,2,3,4,5,6,7,8,9]);
