@@ -1,16 +1,18 @@
 module JsContracts.Compiler
   ( compile
   , compile'
+  , compileFormatted
   ) where
 
 import Control.Monad
 
 import qualified Data.Map as M
 
+import Text.PrettyPrint.HughesPJ ( render, vcat )
 import Paths_JsContracts -- created by Cabal
 import System.FilePath ((</>))
 import WebBits.JavaScript.Parser (ParsedExpression, ParsedStatement,
-  parseJavaScriptFromFile)
+  parseJavaScriptFromFile, parseScriptFromString )
 import WebBits.JavaScript.Environment
 import WebBits.JavaScript.Syntax
 import WebBits.JavaScript.PrettyPrint ()
@@ -20,6 +22,13 @@ import JsContracts.Parser
 import JsContracts.Template
 
 
+exposeImplementation :: [String]
+                     -> [ParsedStatement]
+exposeImplementation names = 
+  [ExprStmt noPos $ AssignExpr noPos OpAssign
+    (DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos n))
+    (VarRef noPos (Id noPos n))
+    | n <- names ]
 
 wrapImplementation :: [ParsedStatement] -> [String] -> [ParsedStatement]
 wrapImplementation impl names = 
@@ -85,6 +94,37 @@ compile impl interface boilerplateStmts =
         wrappedImpl ++ boilerplateStmts ++ interfaceStmts ++ aliasStmts ++
         exportStmts
     in ExprStmt noPos $ CallExpr noPos outerWrapper []
+
+
+libraryHeader =
+  "(function () {\n \
+  \   var impl = { };\n \
+  \   (function(impl) {\n"
+
+compileFormatted :: String -- ^implementation
+                 -> String -- ^implementation source
+                 -> String -- ^contract library
+                 -> [InterfaceItem] -- ^the interface
+                 -> String -- ^encapsulated implementation
+compileFormatted rawImpl implSource boilerplate interface =
+  libraryHeader ++ (concat $ map (render.pp) $ escapeGlobals impl exportNames) 
+    ++ rawImpl
+    ++ exposeStatements ++ "\n})(impl);\n" ++ boilerplate 
+    ++ interfaceStatements
+    ++ aliasStatements ++ exportStatements
+    ++ "\n})();" where
+     impl = case parseScriptFromString implSource rawImpl of
+              Left err -> error (show err)
+              Right (Script _ stmts) -> stmts
+     exports = filter isInterfaceExport interface
+     exportStatements = concatMap (render.pp.makeExportStatement) exports 
+     exportNames = [n | InterfaceExport n _ <- exports ]
+     aliases = filter isInterfaceAlias interface
+     aliasStatements = concatMap (render.pp) $ concatMap compileAlias aliases
+     exposeStatements = concatMap (render.pp) $ exposeImplementation exportNames
+     interfaceStatements = render.vcat $ map (pp.interfaceStatement) $ 
+       filter isInterfaceStatement interface
+     
 
 compile' :: [ParsedStatement] -> [InterfaceItem] -> IO ParsedStatement
 compile' impl iface  = liftM (compile impl iface) boilerplate

@@ -7,8 +7,9 @@ import System.Directory
 import System.FilePath
 import Control.Monad
 
-import JsContracts.Compiler ( compile' )
+import JsContracts.Compiler
 import JsContracts.Parser
+import Paths_JsContracts -- created by Cabal
 
 import WebBits.Common ( pp )
 import WebBits.JavaScript.Parser ( parseJavaScriptFromFile )
@@ -33,6 +34,7 @@ usage = usageInfo
 
 main = do
   args <- getArgs
+  dataDir <- getDataDir
   let (opts, nonOpts, errors) = getOpt RequireOrder options args
   unless (null errors) $ do
     mapM_ putStrLn  errors
@@ -50,10 +52,12 @@ main = do
       exists <- doesFileExist ifacePath
       unless exists $ do
         fail $ "could not find " ++ ifacePath
-      impl  <- parseJavaScriptFromFile implPath
-      iface <- parseInterface ifacePath
-      result <- compile' impl iface
-      putStrLn $ render $ pp result
+      rawImpl <- readFile implPath
+      let boilerplatePath = dataDir </> "contracts.js"
+      rawBoilerplate <- readFile boilerplatePath
+      interface <- parseInterface ifacePath
+      let result = compileFormatted rawImpl implPath rawBoilerplate interface
+      putStrLn result
       return () 
     otherwise -> do
       putStrLn "expected a single filename.js"
