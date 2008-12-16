@@ -23,6 +23,7 @@ import JsContracts.Types
 
   nonFunction = flat
               | :contractLabel
+              | :customConstructor(contract ,*)
               | object
               | ( function )
 
@@ -57,10 +58,9 @@ function = do
 
 namedContract :: CharParser st Contract
 namedContract = do
-  char ':'
+  idFirst <- letter <|> oneOf "$_"
   pos <- getPosition
   -- same as JavaScript (from WebBits' lexer)
-  idFirst <- letter <|> oneOf "$_"
   idRest <- many1 (alphaNum <|> oneOf "$_")
   whiteSpace
   return (NamedContract pos (idFirst:idRest))
@@ -85,6 +85,7 @@ object = do
 flat :: CharParser st Contract
 flat = do
   pos <- getPosition
+  reservedOp ":"
   expr <- jsExpr <?> "JavaScript expression"
   return (FlatContract pos expr)
        

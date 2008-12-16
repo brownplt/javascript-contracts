@@ -17,17 +17,21 @@
   function isArray(x) { return x instanceof Array; }
 }
 
-coords = { x : isNumber, 
-           y : isNumber,
-           moveRight : -> :coords
+// Prefix a colon to build a flat contract, where the expression on the right
+// of the colon is a JavaScript predicate
+num = :isNumber;
+
+coords = { x : num, 
+           y : num,
+           moveRight : -> coords
          };
 
-thunk :: -> isNumber;
-add1 :: isNumber -> isNumber;
-sub1Broken :: isNumber -> isNumber;
-add :: isNumber isNumber -> isNumber;
-div :: isNumber function(x) { return x != 0; } -> isNumber;
-makeCoords :: isNumber isNumber -> :coords;
+thunk :: -> num;
+add1 :: num -> num;
+sub1Broken :: num -> num; 
+add :: num num -> num; 
+div :: num :function(x) { return x != 0; } -> num;
+makeCoords :: num num -> coords;
 
-filter :: (any -> isBool) isArray -> isArray;
-curry :: (isNumber isNumber -> isNumber) isNumber -> isNumber -> isNumber;
+filter :: (:any -> :isBool) :isArray -> :isArray;
+curry :: (:isNumber num -> num) num -> num -> num;

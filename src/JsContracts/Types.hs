@@ -8,6 +8,7 @@ data Contract
   = FlatContract SourcePos ParsedExpression
   | NamedContract SourcePos String
   | FunctionContract SourcePos [Contract] Contract
+  | ConstructorContract SourcePos [Contract]
   | ObjectContract SourcePos [(String,Contract)]
   | NoContract SourcePos
 
