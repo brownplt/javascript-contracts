@@ -101,23 +101,33 @@ flatTemplate :: JavaScriptTemplate
 flatTemplate = exprTemplate "contracts.flat(pred)"
 
 functionTemplate :: JavaScriptTemplate
-functionTemplate = exprTemplate "contracts.func(contracts)"
+functionTemplate = exprTemplate 
+  "contracts.varArityFunc([fixedArgs],restArg,result)"
 
 fixedArrayTemplate = exprTemplate "contracts.fixedArray(contracts)"
 
 objectTemplate :: JavaScriptTemplate
 objectTemplate = exprTemplate "contracts.obj({ fieldNames: 42 })"
 
+-- TODO: hygiene.  Use an extended annotation (Either SourcePos ...) to
+-- determine whether or not to substitute into a template.
 -- |Core contract compiler
 cc :: Contract -> ParsedExpression
 cc (FlatContract _ predExpr) =  
   templateExpression
     $ substVar "pred" predExpr flatTemplate
-cc (FunctionContract _ domainContracts rangeContract) = 
-  let argContracts = map cc domainContracts
-      contracts = argContracts ++ [cc rangeContract]
+cc (FunctionContract _ domainContracts (Just restContract) rangeContract) = 
+  templateExpression
+    $ substVar "restArg" (cc restContract)
+    $ substVar "result" (cc rangeContract)
+    $ substVarList "fixedArgs" (map cc domainContracts) functionTemplate
+cc (FunctionContract _ domainContracts Nothing rangeContract) = 
+  let isUndefined = DotRef noPos (VarRef noPos (Id noPos "contracts"))
+                           (Id noPos "isUndefined")
     in templateExpression
-         $ substVarList "contracts" contracts functionTemplate
+         $ substVar "restArg" isUndefined
+         $ substVar "result" (cc rangeContract)
+         $ substVarList "fixedArgs" (map cc domainContracts) functionTemplate
 cc (ConstructorContract _ name args) =
   CallExpr noPos (VarRef noPos (Id noPos name)) (map cc args)
 cc (FixedArrayContract _ elts) =  templateExpression

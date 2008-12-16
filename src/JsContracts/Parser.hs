@@ -3,6 +3,7 @@ module JsContracts.Parser
   , parseInterface
   ) where
 
+import qualified Data.List as L
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Pos
@@ -19,6 +20,7 @@ import JsContracts.Types
                 | blockStmt
   
   function = nonFunction * -> function
+           | nonFunction + ... -> function
            | nonFunction
 
   nonFunction = flat
@@ -47,15 +49,23 @@ function = do
     [] -> do
       reserved "->"
       result <- function
-      return (FunctionContract pos [] result)
+      return (FunctionContract pos [] Nothing result)
     [arg] -> (do reserved "->"
                  result <- function
-                 return (FunctionContract pos [arg] result)) <|>
+                 return (FunctionContract pos [arg] Nothing result)) <|>
+             (do reserved "..."
+                 reserved "->"
+                 result <- function
+                 return (FunctionContract pos [] (Just arg) result)) <|>
              return arg -- nonfunction
-    args' -> do
-      reserved "->"
-      result <- function
-      return (FunctionContract pos args' result)
+    args' -> (do reserved "->"
+                 result <- function
+                 return (FunctionContract pos args' Nothing result)) <|>
+             (do reserved "..."
+                 reserved "->" <?> "-> after ..."
+                 result <- function
+                 let (fixedArgs,[restArg]) =  L.splitAt (length args' - 1) args'
+                 return (FunctionContract pos fixedArgs (Just restArg) result))
 
 namedContract :: CharParser st Contract
 namedContract = do

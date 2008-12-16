@@ -44,3 +44,11 @@ var iota = function(n) {
   }
   return result;
 };
+
+sum = function() {
+  var r = 0;
+  for (var i = 0; i < arguments.length; i++) {
+    r += arguments[i];
+  }
+  return r;
+};

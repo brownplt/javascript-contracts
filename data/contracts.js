@@ -8,6 +8,14 @@ contracts.map = function(f,arr) {
   return dest;
 };
 
+contracts.zipWith = function(f,arr1,arr2) {
+  var dest = [ ];
+  for (var i = 0; i < arr1.length; i++) {
+    dest.push(f(arr1[i],arr2[i]));
+  }
+  return dest;
+};
+
 contracts.blame = function(x) {
   throw x;
 }
@@ -56,6 +64,49 @@ contracts.flat = function(pred) {
     },
     client: function(s) {
       return function(val) { return val; };
+    }
+  };
+};
+
+contracts.isUndefined = contracts.flat(function(val) { 
+  return val === undefined;
+});
+
+contracts.varArityFunc = function(fixedArgs,restArgs,result) {
+  return {
+    server: function(s) {
+      return function(proc) {
+        if (typeof(proc) == "function") {
+          return function() {
+            var guardedArgs = contracts.zipWith(function(ctc,arg) {
+              return ctc.client(s)(arg);
+            }, fixedArgs, arguments);
+            for (var i = fixedArgs.length; i < arguments.length; i++) {
+              guardedArgs.push(restArgs.client(s)(arguments[i]));
+            }
+            return result.server(s)(proc.apply(this, guardedArgs));
+          };
+        }
+        else { contracts.blame(s); }
+      }
+    },
+    client: function(s) {
+      return function(proc) {
+        if (typeof(proc) == "function") {
+          return function() {
+            var guardedArgs = contracts.zipWith(function(ctc,arg) {
+              return ctc.server(s)(arg);
+            }, fixedArgs, arguments);
+            for (var i = fixedArgs.length; i < arguments.length; i++) {
+              guardedArgs.push(restArgs.server(s)(arguments[i]));
+            }
+            return result.client(s)(proc.apply(this, guardedArgs));
+          };
+        }
+        else {
+          return proc;
+        }
+      };
     }
   };
 };

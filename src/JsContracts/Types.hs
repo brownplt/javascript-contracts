@@ -7,7 +7,7 @@ import WebBits.JavaScript.Parser (ParsedExpression, ParsedStatement)
 data Contract
   = FlatContract SourcePos ParsedExpression
   | NamedContract SourcePos String
-  | FunctionContract SourcePos [Contract] Contract
+  | FunctionContract SourcePos [Contract] (Maybe Contract) Contract
   | ConstructorContract SourcePos String [Contract]
   | FixedArrayContract SourcePos [Contract]
   | ObjectContract SourcePos [(String,Contract)]
@@ -16,7 +16,7 @@ data Contract
 instance Show Contract where
   show (FlatContract _ _) = "<flat>"
   show (NamedContract _ s) = ':':s
-  show (FunctionContract _ args result) = 
+  show (FunctionContract _ args _ result) = 
     L.concat (L.intersperse " " $ map show args) ++ " -> " ++ show result
   show (ConstructorContract _ name args) = name ++ "(" ++
     concat (L.intersperse "," (map show args)) ++ ")"
