@@ -63,3 +63,4 @@ curry :: (:isNumber num -> num) num -> num -> num;
 mkPair :: num num -> [ num, num ];
 iota :: num -> customArrayOf(num);
 sum :: num ... -> num;
+reduceNumbers :: num (num num -> num) [ num, ... ] -> num;

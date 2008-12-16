@@ -87,3 +87,7 @@ test(iota(10),[0,1,2,3,4,5,6,7,8,9]);
 test(sum(1,2,3,4,5,6,7,8,9,10), 55);
 testExn(sum(1,2,3, "tooth fairy", 4, 5), "client");
 test(sum(), 0);
+
+test(reduceNumbers(0,sum,[1,2,3,4]),10);
+testExn(reduceNumbers(0,function(x,y) { return y == 3 ? "tooth fairy" : x+y; },
+                      [0,1,2,3,4,5]), "client");

@@ -52,3 +52,10 @@ sum = function() {
   }
   return r;
 };
+
+reduceNumbers = function(init,f,args) {
+  for (var i = 0; i < args.length; i++) {
+    init = f(init,args[i]);
+  }
+  return init;
+};

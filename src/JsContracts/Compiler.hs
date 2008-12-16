@@ -105,6 +105,7 @@ functionTemplate = exprTemplate
   "contracts.varArityFunc([fixedArgs],restArg,result)"
 
 fixedArrayTemplate = exprTemplate "contracts.fixedArray(contracts)"
+arrayTemplate = exprTemplate "contracts.unsizedArray(contract)"
 
 objectTemplate :: JavaScriptTemplate
 objectTemplate = exprTemplate "contracts.obj({ fieldNames: 42 })"
@@ -132,6 +133,8 @@ cc (ConstructorContract _ name args) =
   CallExpr noPos (VarRef noPos (Id noPos name)) (map cc args)
 cc (FixedArrayContract _ elts) =  templateExpression
   $ substVarList "contracts" (map cc elts) fixedArrayTemplate 
+cc (ArrayContract _ elt) =  templateExpression
+  $ substVar "contract" (cc elt) arrayTemplate 
 cc (ObjectContract _ fields) = 
   let getField id = DotRef noPos (VarRef noPos $ Id noPos "val") (Id noPos id)
       mkProp id = PropId noPos (Id noPos id) 

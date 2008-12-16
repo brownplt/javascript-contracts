@@ -29,6 +29,7 @@ import JsContracts.Types
               | object
               | ( function )
               | [ contract ,* ] -- fixed length array
+              | [ contract , ... ] -- arbitrary length array
 
   flat = jsExpr
 
@@ -89,9 +90,17 @@ array :: CharParser st Contract
 array = do
   pos <- getPosition
   reservedOp "["
-  elts <- contract `sepBy1` comma <?> "elements in an array contract"
-  reservedOp "]"
-  return (FixedArrayContract pos elts)
+  elt1 <- contract
+  comma
+  let arbitrary = do
+        reservedOp "..."
+        reservedOp "]"
+        return (ArrayContract pos elt1)
+  let fixed = do
+        elts <- contract `sepBy` comma <?> "elements in an array contract"
+        reservedOp "]"
+        return (FixedArrayContract pos (elt1:elts))
+  arbitrary <|> fixed
 
 field :: CharParser st (String,Contract)
 field = do

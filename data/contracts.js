@@ -20,6 +20,31 @@ contracts.blame = function(x) {
   throw x;
 }
 
+contracts.unsizedArray = function(elt) {
+  return {
+    server: function(s) {
+      return function(val) {
+        if (val instanceof Array) {
+          return contracts.map(elt.server(s),val);
+        }
+        else {
+          contracts.blame(s);
+        }
+      };
+    },
+    client: function(s) {
+      return function(val) {
+        if (val instanceof Array) {
+          return contracts.map(elt.client(s),val);
+        }
+        else {
+          return val;
+        }
+      }
+    }
+  };
+};
+
 contracts.fixedArray = function() {
   var elts = arguments;
   return {

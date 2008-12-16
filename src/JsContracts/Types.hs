@@ -10,6 +10,7 @@ data Contract
   | FunctionContract SourcePos [Contract] (Maybe Contract) Contract
   | ConstructorContract SourcePos String [Contract]
   | FixedArrayContract SourcePos [Contract]
+  | ArrayContract SourcePos Contract
   | ObjectContract SourcePos [(String,Contract)]
   | NoContract SourcePos
 
