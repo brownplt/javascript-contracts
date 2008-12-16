@@ -125,6 +125,11 @@ interface =
 parseInterface :: String -> IO [InterfaceItem]
 parseInterface filename = do
   chars <- readFile filename
-  case parse interface filename chars of
+  let parser = do
+        whiteSpace
+        r <- interface
+        eof
+        return r
+  case parse parser filename chars of
     Left err      -> fail (show err)
     Right exports -> return exports
