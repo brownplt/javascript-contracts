@@ -1,4 +1,4 @@
-module JsContracts.Compiler where
+module JsContracts.Compiler
   ( compile
   , compile'
   ) where
