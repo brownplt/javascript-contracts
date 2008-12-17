@@ -27,7 +27,7 @@ exposeImplementation :: [String]
                      -> [ParsedStatement]
 exposeImplementation names = 
   [ExprStmt noPos $ AssignExpr noPos OpAssign
-    (DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos n))
+    (DotRef noPos (ThisRef noPos) (Id noPos n))
     (VarRef noPos (Id noPos n))
     | n <- names ]
 
@@ -35,14 +35,12 @@ wrapImplementation :: [ParsedStatement] -> [String] -> [ParsedStatement]
 wrapImplementation impl names = 
   [VarDeclStmt noPos [implDecl], ExprStmt noPos callThunkedImpl] where
     implDecl = VarDecl noPos (Id noPos "impl") (Just $ ObjectLit noPos [])
-    implExport = 
-        [ExprStmt noPos $ AssignExpr noPos OpAssign
-            (DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos n))
-            (VarRef noPos (Id noPos n))
-            | n <- names ]
+    implExport = exposeImplementation names
     callThunkedImpl = CallExpr noPos 
-      (ParenExpr noPos $ FuncExpr noPos [Id noPos "impl"] 
-         (BlockStmt noPos (impl ++ implExport)))
+      (DotRef noPos 
+         (ParenExpr noPos $ FuncExpr noPos [Id noPos "impl"] 
+           (BlockStmt noPos (impl ++ implExport)))
+         (Id noPos "apply"))
       [VarRef noPos (Id noPos "impl")]
   
 escapeGlobals :: [ParsedStatement] -> [String] -> [ParsedStatement]
@@ -122,7 +120,7 @@ compile impl interface boilerplateStmts =
 libraryHeader =
   "(function () {\n \
   \   var impl = { };\n \
-  \   (function(impl) {\n"
+  \   (function() {\n"
 
 compileRelease :: String -- ^implementation
                -> String -- ^implementation source
@@ -132,7 +130,7 @@ compileRelease :: String -- ^implementation
 compileRelease rawImpl implSource boilerplate interface =
   libraryHeader ++ (concat $ map (render.pp) $ escapeGlobals impl exportNames) 
     ++ rawImpl ++ exposeStatements ++ "\n})(impl);\n" ++ exportStatements
-    ++ "\n})();" where
+    ++ "\n}).apply(impl,[]);" where
      impl = case parseScriptFromString implSource rawImpl of
               Left err -> error (show err)
               Right (Script _ stmts) -> stmts
