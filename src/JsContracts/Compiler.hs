@@ -23,12 +23,19 @@ import JsContracts.Parser
 import JsContracts.Template
 
 
+
+
 exposeImplementation :: [String]
                      -> [ParsedStatement]
-exposeImplementation names = 
-  [ExprStmt noPos $ AssignExpr noPos OpAssign
-    (DotRef noPos (ThisRef noPos) (Id noPos n))
-    (VarRef noPos (Id noPos n))
+exposeImplementation names =
+  [TryStmt noPos (ExprStmt noPos $ AssignExpr noPos OpAssign
+                    (DotRef noPos (ThisRef noPos) (Id noPos n))
+                    (VarRef noPos (Id noPos n)))
+     [CatchClause noPos (Id noPos "_") 
+        (ExprStmt noPos $ AssignExpr noPos OpAssign
+                            (DotRef noPos (ThisRef noPos) (Id noPos n))
+                            (VarRef noPos (Id noPos "undefined")))]
+     Nothing
     | n <- names ]
 
 wrapImplementation :: [ParsedStatement] -> [String] -> [ParsedStatement]
