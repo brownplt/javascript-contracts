@@ -74,3 +74,7 @@ moveCoords = function(c) {
     throw "expected instanceof Coords"
   }
 }
+
+forever = function(n) { 
+  return { val : n, next: function(m) { return forever(m); } };
+}; 

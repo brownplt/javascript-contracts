@@ -60,20 +60,35 @@ makeExportStatement (InterfaceExport id contract) =
        DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos id))
 makeExportStatement _ = error "makeExportStatement: expected InterfaceItem"
 
-aliasTemplate = stmtTemplate
-  "var alias = { }; \
-  \(function() { \
-  \   var tmp = contract; \
-  \   alias.client = tmp.client; \
-  \   alias.server = tmp.server; \
-  \})();"
 
-compileAlias :: InterfaceItem -> [ParsedStatement]
-compileAlias (InterfaceAlias id contract) = templateStatements 
-  $ renameVar "alias"  id
-  $ substVar "contract" (cc contract)
-  aliasTemplate
-compileAlias _ = error "compileAlias: expected an InterfaceAlias"
+-- Given source that reads:
+--
+-- foo = contract;
+-- ...
+--
+-- Transform it to:
+--
+-- var foo = { }; ...
+-- (function() {
+--    var tmp = contract;
+--    foo.client = tmp.client;
+--    foo.server = tmp.server;
+-- })();
+--
+-- The names are first initialized to empty object to permit mutually-recursive
+-- contract definitions.
+compileAliases :: [InterfaceItem] -> [ParsedStatement]
+compileAliases aliases = concatMap init aliases ++ concatMap def aliases where
+  init (InterfaceAlias id _) = templateStatements
+    $ renameVar "alias" id (stmtTemplate "var alias = { };")
+  init _ = error "compileAliases: expected InterfaceAlias (1)"
+  def (InterfaceAlias id contract) = templateStatements
+    $ renameVar "alias" id
+    $ substVar "contract" (cc contract)
+    (stmtTemplate "(function() { var tmp = contract;\n \
+                  \              alias.client = tmp.client;\n \
+                  \              alias.server = tmp.server; })(); \n")
+  def _ = error "compileAliases: expected InterfaceAlias (2)"
 
 compile :: [ParsedStatement]  -- ^implementation
         -> [InterfaceItem]   -- ^the interface
@@ -83,7 +98,7 @@ compile impl interface boilerplateStmts =
   let exportStmts = map makeExportStatement interfaceExports
       exportNames = [n | InterfaceExport n _ <- interfaceExports]
       aliases = filter isInterfaceAlias interface
-      aliasStmts = concatMap compileAlias aliases
+      aliasStmts = compileAliases aliases
       wrappedImpl = wrapImplementation (escapeGlobals impl exportNames ++ impl)
                                         exportNames
       interfaceStmts = map interfaceStatement $ 
@@ -120,7 +135,7 @@ compileFormatted rawImpl implSource boilerplate interface =
      exportStatements = concatMap (render.pp.makeExportStatement) exports 
      exportNames = [n | InterfaceExport n _ <- exports ]
      aliases = filter isInterfaceAlias interface
-     aliasStatements = concatMap (render.pp) $ concatMap compileAlias aliases
+     aliasStatements = concatMap (render.pp) $ compileAliases aliases
      exposeStatements = concatMap (render.pp) $ exposeImplementation exportNames
      interfaceStatements = render.vcat $ map (pp.interfaceStatement) $ 
        filter isInterfaceStatement interface

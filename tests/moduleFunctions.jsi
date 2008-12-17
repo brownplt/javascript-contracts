@@ -51,6 +51,7 @@ coords = { x : num,
            moveRight : -> coords
          };
 
+
 thunk :: -> num;
 add1 :: num -> num;
 sub1Broken :: num -> num; 
@@ -69,3 +70,7 @@ reduceNumbers :: num (num num -> num) [ num, ... ] -> num;
 // the arg must be an instanceof coords, but the result is not
 moveCoords :: { x : num, y : num } -> { x : num, y : num };
 
+bob = num -> { val : num, next: job };
+job = num -> { val : num, next: bob };
+
+forever :: bob;

@@ -97,3 +97,6 @@ test(moveCoords(new Coords(10,20)), { x: 11, y: 21 });
 // The exception here is _not_ a contract violation.  The contract is under-
 // specified and moveCoords itself throws the exception (hence the odd string).
 testExn(moveCoords({ x: 10, y: 20 }), "expected instanceof Coords");
+test(forever(10).val,10);
+test(forever(10).next(20).val,20);
+test(forever(10).next(20).next(30).val,30);
