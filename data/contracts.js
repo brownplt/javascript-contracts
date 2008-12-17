@@ -16,8 +16,24 @@ contracts.zipWith = function(f,arr1,arr2) {
   return dest;
 };
 
-contracts.blame = function(x) {
-  throw x;
+contracts.ContractViolationException  = function(guilty, expected, received, 
+                                                 message) { 
+  this.guilty = guilty;
+  this.expected = expected;
+  this.received = received;
+  this.message = message;
+};
+
+contracts.ContractViolationException.prototype = { };
+contracts.ContractViolationException.prototype.toString = function() {
+  return this.guilty + " violated a contract; expected " + this.expected
+    + " but received " + this.received + "; " + this.message;
+};
+      
+
+contracts.blame = function(guilty, expected, received, message) {
+  throw new contracts.ContractViolationException(guilty,expected,received,
+              message);
 }
 
 contracts.unsizedArray = function(elt) {
@@ -28,7 +44,7 @@ contracts.unsizedArray = function(elt) {
           return contracts.map(elt.server(s),val);
         }
         else {
-          contracts.blame(s);
+          contracts.blame(s,"[ " + elt + ", ... ]", val, "not an array");
         }
       };
     },
@@ -58,7 +74,7 @@ contracts.fixedArray = function() {
           return result;
         }
         else {
-          contracts.blame(s);
+          contracts.blame(s, elts, val, "not an array of the right size");
         }
       };
     },
@@ -84,7 +100,7 @@ contracts.flat = function(pred) {
     server: function(s) {
       return function(val) {
         if (pred(val)) { return val; }
-        else { contracts.blame(s); }
+        else { contracts.blame(s,pred, val, "does not satisfy the predicate"); }
       };
     },
     client: function(s) {
@@ -112,7 +128,7 @@ contracts.varArityFunc = function(fixedArgs,restArgs,result) {
             return result.server(s)(proc.apply(this, guardedArgs));
           };
         }
-        else { contracts.blame(s); }
+        else { contracts.blame(s, "a function", proc, "not a function"); }
       }
     },
     client: function(s) {
@@ -136,46 +152,6 @@ contracts.varArityFunc = function(fixedArgs,restArgs,result) {
   };
 };
 
-contracts.func = function() {
-  var args = [ ];
-  var result = arguments[arguments.length - 1];
-  for (var i = 0; i < arguments.length - 1; i++) {
-    args.push(arguments[i]);
-  }
-
-  return {
-    server: function(s) {
-      return function(proc) {
-        if (typeof(proc) == "function") {
-          return function() {
-            var guardedArgs = [ ];
-            for (var i = 0; i < arguments.length; i++) {
-              guardedArgs.push(args[i].client(s)(arguments[i]));
-            }
-            return result.server(s)(proc.apply(this, guardedArgs));
-          };
-        }
-        else { contracts.blame(s); }
-      }
-    },
-    client: function(s) {
-      return function(proc) {
-        if (typeof(proc) == "function") {
-          return function() {
-            var guardedArgs = [ ];
-            for (var i = 0; i < arguments.length; i++) {
-              guardedArgs.push(args[i].server(s)(arguments[i]));
-            }
-            return result.client(s)(proc.apply(this, guardedArgs));
-          };
-        }
-        else {
-          return proc;
-        }
-      };
-    }
-  };
-};
 
 contracts.obj = function(sig) {
   return {

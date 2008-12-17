@@ -47,7 +47,7 @@ function testExn(resultThunk,expectedMsg) {
     print("Expected exception " + expectedMsg + "; evaluated to " + result); 
   }
   catch(e) {
-    if (e.match(expectedMsg)) {
+    if (e.guilty && e.guilty.match(expectedMsg)) {
       return true;
     }
     else {
