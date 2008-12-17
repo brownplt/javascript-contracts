@@ -36,8 +36,31 @@ contracts.blame = function(guilty, expected, received, message) {
               message);
 }
 
+contracts.flat = function(pred) {
+  return {
+    pred: function(val) { return pred(val); },
+    server: function(s) {
+      return function(val) {
+        if (pred(val)) { return val; }
+        else { contracts.blame(s,pred, val, "does not satisfy the predicate"); }
+      };
+    },
+    client: function(s) {
+      return function(val) { return val; };
+    }
+  };
+};
+
+
 contracts.unsizedArray = function(elt) {
   return {
+    pred: function(val) {
+      return val instanceof Array;
+      for (var i = 0; i < val.length; i++) {
+        if (!(elt.flat(val[i]))) { return false; }
+      }
+      return true;
+    },
     server: function(s) {
       return function(val) {
         if (val instanceof Array) {
@@ -64,6 +87,15 @@ contracts.unsizedArray = function(elt) {
 contracts.fixedArray = function() {
   var elts = arguments;
   return {
+    pred: function(val) {
+      if  (!(val instanceof Array && val.length == elts.length)) {
+        return false;
+      }
+      for (var i = 0; i < val.length; i++) {
+        if (!elts[i].flat(val[i])) { return false; }
+      }
+      return true;
+    },
     server: function(s) {
       return function(val) {
         if (val instanceof Array && val.length == elts.length) {
@@ -95,26 +127,13 @@ contracts.fixedArray = function() {
   };
 };
 
-contracts.flat = function(pred) {
-  return {
-    server: function(s) {
-      return function(val) {
-        if (pred(val)) { return val; }
-        else { contracts.blame(s,pred, val, "does not satisfy the predicate"); }
-      };
-    },
-    client: function(s) {
-      return function(val) { return val; };
-    }
-  };
-};
-
 contracts.isUndefined = contracts.flat(function(val) { 
   return val === undefined;
 });
 
 contracts.varArityFunc = function(fixedArgs,restArgs,result) {
   return {
+    flat: function(val) { return typeof(val) == "function"; },
     server: function(s) {
       return function(proc) {
         if (typeof(proc) == "function") {
@@ -155,6 +174,12 @@ contracts.varArityFunc = function(fixedArgs,restArgs,result) {
 
 contracts.obj = function(sig) {
   return {
+    flat: function(val) {
+      for (var field in sig) {
+        if (!(sig[field].flat(val[field]))) { return false; }
+      }
+      return true;
+    },
     server: function(s) {
       return function (obj) {
         var constr = function() { };
