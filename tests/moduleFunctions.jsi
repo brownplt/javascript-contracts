@@ -64,3 +64,8 @@ mkPair :: num num -> [ num, num ];
 iota :: num -> customArrayOf(num);
 sum :: num ... -> num;
 reduceNumbers :: num (num num -> num) [ num, ... ] -> num;
+// TODO: constructor contract!
+// Coords :: num num -> any;
+// the arg must be an instanceof coords, but the result is not
+moveCoords :: { x : num, y : num } -> { x : num, y : num };
+

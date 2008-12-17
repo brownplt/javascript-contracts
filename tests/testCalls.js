@@ -47,7 +47,8 @@ function testExn(resultThunk,expectedMsg) {
     print("Expected exception " + expectedMsg + "; evaluated to " + result); 
   }
   catch(e) {
-    if (e.guilty && e.guilty.match(expectedMsg)) {
+    if ((e.guilty && e.guilty.match(expectedMsg)) || 
+        (e.match && e.match(expectedMsg))) {
       return true;
     }
     else {
@@ -91,3 +92,8 @@ test(sum(), 0);
 test(reduceNumbers(0,sum,[1,2,3,4]),10);
 testExn(reduceNumbers(0,function(x,y) { return y == 3 ? "tooth fairy" : x+y; },
                       [0,1,2,3,4,5]), "client");
+
+test(moveCoords(new Coords(10,20)), { x: 11, y: 21 }); 
+// The exception here is _not_ a contract violation.  The contract is under-
+// specified and moveCoords itself throws the exception (hence the odd string).
+testExn(moveCoords({ x: 10, y: 20 }), "expected instanceof Coords");

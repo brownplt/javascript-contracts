@@ -59,3 +59,18 @@ reduceNumbers = function(init,f,args) {
   }
   return init;
 };
+
+// TODO: Constructor contract!
+window.Coords = function(x,y) {
+  this.x = x;
+  this.y = y;
+}
+
+moveCoords = function(c) {
+  if (c instanceof window.Coords) {
+    return makeCoords(c.x + 1, c.y + 1);
+  }
+  else {
+    throw "expected instanceof Coords"
+  }
+}
