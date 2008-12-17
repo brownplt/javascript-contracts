@@ -129,15 +129,17 @@ compileRelease :: String -- ^implementation
                -> String -- ^encapsulated implementation
 compileRelease rawImpl implSource boilerplate interface =
   libraryHeader ++ (concat $ map (render.pp) $ escapeGlobals impl exportNames) 
-    ++ rawImpl ++ exposeStatements ++ "\n})(impl);\n" ++ exportStatements
-    ++ "\n}).apply(impl,[]);" where
+    ++ rawImpl ++ exposeStatements ++ "\n}).apply(impl,[]);\n" 
+    ++ exportStatements ++ "\n})();" where
      impl = case parseScriptFromString implSource rawImpl of
               Left err -> error (show err)
               Right (Script _ stmts) -> stmts
      exports = filter isInterfaceExport interface
-     exportStatements = concatMap (render.pp.exportRelease) exports 
+     exportStatements = render $ vcat $
+       map (pp.exportRelease) exports
      exportNames = [n | InterfaceExport n _ <- exports ]
-     exposeStatements = concatMap (render.pp) $ exposeImplementation exportNames
+     exposeStatements = render $ vcat $ 
+       map pp (exposeImplementation exportNames)
 
 compileFormatted :: String -- ^implementation
                  -> String -- ^implementation source
@@ -147,7 +149,7 @@ compileFormatted :: String -- ^implementation
 compileFormatted rawImpl implSource boilerplate interface =
   libraryHeader ++ (concat $ map (render.pp) $ escapeGlobals impl exportNames) 
     ++ rawImpl
-    ++ exposeStatements ++ "\n})(impl);\n" ++ boilerplate 
+    ++ exposeStatements ++ "\n}).apply(impl,[]);\n" ++ boilerplate 
     ++ interfaceStatements
     ++ aliasStatements ++ exportStatements
     ++ "\n})();" where
