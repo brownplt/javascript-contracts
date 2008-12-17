@@ -31,10 +31,7 @@ exposeImplementation names =
   [TryStmt noPos (ExprStmt noPos $ AssignExpr noPos OpAssign
                     (DotRef noPos (ThisRef noPos) (Id noPos n))
                     (VarRef noPos (Id noPos n)))
-     [CatchClause noPos (Id noPos "_") 
-        (ExprStmt noPos $ AssignExpr noPos OpAssign
-                            (DotRef noPos (ThisRef noPos) (Id noPos n))
-                            (VarRef noPos (Id noPos "undefined")))]
+     [CatchClause noPos (Id noPos "_") (EmptyStmt noPos)]
      Nothing
     | n <- names ]
 
