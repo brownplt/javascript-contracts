@@ -131,15 +131,12 @@ interfaceExport = do
 interfaceAlias  = do
     reservedOp "=" >> (return $ \id -> liftM (InterfaceAlias id) contract)
 
-interfaceElement = do
-    id <- identifier
-    build <- interfaceExport <|> interfaceAlias
-    build id
+interfaceElement = interfaceExport <|> interfaceAlias
 
 interface :: CharParser st [InterfaceItem]
-interface = many $ (stmt interfaceElement) <|> (liftM InterfaceStatement parseBlockStmt)
-    where stmt p = do { e <- p; reservedOp ";"; return e }
-
+interface = many $ (stmt $ interfaceElement `fap` identifier) <|> (liftM InterfaceStatement parseBlockStmt)
+    where stmt p  = do { e <- p; reservedOp ";"; return e }
+          fap k m = do { e <- m; f <- k; f e }
 
 parseInterface :: String -> IO [InterfaceItem]
 parseInterface filename = do
