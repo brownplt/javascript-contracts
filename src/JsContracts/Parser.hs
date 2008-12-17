@@ -3,6 +3,8 @@ module JsContracts.Parser
   , parseInterface
   ) where
 
+import Control.Monad
+
 import qualified Data.List as L
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
@@ -123,23 +125,21 @@ flat = do
   expr <- jsExpr <?> "JavaScript expression"
   return (FlatContract pos expr)
        
+interfaceExport = do
+    reservedOp "::" >> (return $ \id -> liftM (InterfaceExport id) contract)
+
+interfaceAlias  = do
+    reservedOp "=" >> (return $ \id -> liftM (InterfaceAlias id) contract)
+
+interfaceElement = do
+    id <- identifier
+    build <- interfaceExport <|> interfaceAlias
+    build id
+
 interface :: CharParser st [InterfaceItem]
-interface =
-  (do id <- identifier
-      item <- (do reservedOp "::"
-                  ctc <- contract
-                  return (InterfaceExport id ctc)) <|>
-              (do reservedOp "="
-                  ctc <- contract
-                  return (InterfaceAlias id ctc))
-      reservedOp ";"
-      rest <- interface
-      return (item:rest)) <|>
-  (do stmt <- parseBlockStmt
-      rest <- interface
-      return $ (InterfaceStatement stmt):rest) <|>
-  (return [])
-  
+interface = many $ (stmt interfaceElement) <|> (liftM InterfaceStatement parseBlockStmt)
+    where stmt p = do { e <- p; reservedOp ";"; return e }
+
 
 parseInterface :: String -> IO [InterfaceItem]
 parseInterface filename = do
