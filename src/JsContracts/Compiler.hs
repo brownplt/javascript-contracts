@@ -131,9 +131,7 @@ compileRelease :: String -- ^implementation
                -> String -- ^encapsulated implementation
 compileRelease rawImpl implSource boilerplate interface =
   libraryHeader ++ (concat $ map (render.pp) $ escapeGlobals impl exportNames) 
-    ++ rawImpl
-    ++ exposeStatements ++ "\n})(impl);\n" ++ boilerplate 
-    ++ exportStatements
+    ++ rawImpl ++ exposeStatements ++ "\n})(impl);\n" ++ exportStatements
     ++ "\n})();" where
      impl = case parseScriptFromString implSource rawImpl of
               Left err -> error (show err)
