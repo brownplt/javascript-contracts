@@ -23,17 +23,29 @@ import JsContracts.Parser
 import JsContracts.Template
 
 
-
-
+-- Given the name foo, we get
+--
+-- try {
+--   // allow the implementation to export to this directly
+--   if (this.foo !== undefined) {
+--     this.foo = foo;
+--   }
+-- }
+-- catch (_) {
+--   // in case the local variable foo is undefined
+-- }
 exposeImplementation :: [String]
                      -> [ParsedStatement]
-exposeImplementation names =
-  [TryStmt noPos (ExprStmt noPos $ AssignExpr noPos OpAssign
-                    (DotRef noPos (ThisRef noPos) (Id noPos n))
-                    (VarRef noPos (Id noPos n)))
-     [CatchClause noPos (Id noPos "_") (EmptyStmt noPos)]
-     Nothing
-    | n <- names ]
+exposeImplementation names = map export names where
+  var n = VarRef noPos (Id noPos n)
+  undef = VarRef noPos (Id noPos "undefined")
+  export n = TryStmt noPos 
+    (IfSingleStmt noPos (InfixExpr noPos OpStrictNEq (var n) undef)
+       (ExprStmt noPos $ AssignExpr noPos OpAssign
+          (DotRef noPos (ThisRef noPos) (Id noPos n)) 
+          (var n)))
+    [CatchClause noPos (Id noPos "_") (EmptyStmt noPos)]
+    Nothing
 
 wrapImplementation :: [ParsedStatement] -> [String] -> [ParsedStatement]
 wrapImplementation impl names = 
