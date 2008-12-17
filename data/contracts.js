@@ -157,7 +157,10 @@ contracts.obj = function(sig) {
   return {
     server: function(s) {
       return function (obj) {
-        var guardedObj = { };
+        var constr = function() { };
+        constr.prototype = obj;
+        var guardedObj = new constr();
+        
         for (var field in sig) {
           guardedObj[field] = sig[field].server(s)(obj[field]);
         }
@@ -166,7 +169,10 @@ contracts.obj = function(sig) {
     },
     client: function(s) {
       return function (obj) {
-        var guardedObj = { };
+        var constr = function() { };
+        constr.prototype = obj;
+        var guardedObj = new constr();
+        
         for (var field in sig) {
           guardedObj[field] = sig[field].client(s)(obj[field]);
         }
