@@ -2,6 +2,7 @@ module JsContracts.Compiler
   ( compile
   , compile'
   , compileFormatted
+  , compileRelease
   ) where
 
 import Control.Monad
@@ -60,6 +61,13 @@ makeExportStatement (InterfaceExport id contract) =
        DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos id))
 makeExportStatement _ = error "makeExportStatement: expected InterfaceItem"
 
+exportRelease :: InterfaceItem -> ParsedStatement
+exportRelease (InterfaceExport id contract) = 
+  ExprStmt noPos $ AssignExpr noPos OpAssign 
+    (DotRef noPos (VarRef noPos (Id noPos "window")) (Id noPos id))
+    (DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos id))
+exportRelease _ = error "exportRelease: expected InterfaceItem"
+
 
 -- Given source that reads:
 --
@@ -115,6 +123,25 @@ libraryHeader =
   "(function () {\n \
   \   var impl = { };\n \
   \   (function(impl) {\n"
+
+compileRelease :: String -- ^implementation
+               -> String -- ^implementation source
+               -> String -- ^contract library
+               -> [InterfaceItem] -- ^the interface
+               -> String -- ^encapsulated implementation
+compileRelease rawImpl implSource boilerplate interface =
+  libraryHeader ++ (concat $ map (render.pp) $ escapeGlobals impl exportNames) 
+    ++ rawImpl
+    ++ exposeStatements ++ "\n})(impl);\n" ++ boilerplate 
+    ++ exportStatements
+    ++ "\n})();" where
+     impl = case parseScriptFromString implSource rawImpl of
+              Left err -> error (show err)
+              Right (Script _ stmts) -> stmts
+     exports = filter isInterfaceExport interface
+     exportStatements = concatMap (render.pp.exportRelease) exports 
+     exportNames = [n | InterfaceExport n _ <- exports ]
+     exposeStatements = concatMap (render.pp) $ exposeImplementation exportNames
 
 compileFormatted :: String -- ^implementation
                  -> String -- ^implementation source
