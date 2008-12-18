@@ -202,7 +202,10 @@ compileFormatted rawImpl implSource boilerplate interface =
      exportNames = [n | InterfaceExport n _ <- exports ]
      aliases = filter isInterfaceAlias interface
      aliasStatements = concatMap (render.pp) $ compileAliases interface
-     exposeStatements = concatMap (render.pp) $ exposeImplementation exportNames
+     instanceNames = 
+       [n | InterfaceInstance n _ <- filter isInterfaceInstance interface]
+     exposeStatements = concatMap (render.pp) $ 
+       exposeImplementation (exportNames ++ instanceNames)
      interfaceStatements = render.vcat $ map (pp.interfaceStatement) $ 
        filter isInterfaceStatement interface
      

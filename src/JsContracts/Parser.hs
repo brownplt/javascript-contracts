@@ -26,9 +26,9 @@ import JsContracts.Types
            | nonFunction + ... -> function
            | nonFunction
 
-  nonFunction = flat
-              | :contractLabel
-              | :customConstructor(contract ,*)
+  nonFunction = :flat
+              | contractLabel
+              | customConstructor(contract ,*)
               | object
               | ( function )
               | [ contract ,* ] -- fixed length array
@@ -79,7 +79,7 @@ namedContract = do
   idRest <- many1 (alphaNum <|> oneOf "$_")
   let name = idFirst:idRest
   let constr = do
-        args <- parens $ many1 contract
+        args <- parens $ contract `sepBy1` comma
         return (ConstructorContract pos name args)
   let named = do
         whiteSpace

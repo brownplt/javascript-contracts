@@ -176,10 +176,12 @@ contracts.varArityFunc = function(fixedArgs,restArgs,result) {
 contracts.instance = function(constr, sig) {
   return {
     flat: function(val) {
-      return (val instanceof constr) && sig.flat(val);
+      return (typeof(val) == "object" || typeof(val) == "function") &&
+             (val instanceof constr) && sig.flat(val);
     },
     server: function(s) { return function(val) {
-      if (val instanceof constr) {
+      if ((typeof(val) == "object" || typeof(val) == "function") && 
+          (val instanceof constr)) {
         return sig.server(s)(val);
       }
       else {
@@ -187,7 +189,8 @@ contracts.instance = function(constr, sig) {
       }
     } },
     client: function(s) { return function(val) {
-      if (val instanceof constr) {
+      if ((typeof(val) == "object" || typeof(val) == "function") && 
+          (val instanceof constr)) {
         return sig.client(s)(val);
       }
       else {
