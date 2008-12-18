@@ -171,6 +171,31 @@ contracts.varArityFunc = function(fixedArgs,restArgs,result) {
   };
 };
 
+// Ensures value is an instanceof constr before checking that its shape
+// matches sig.
+contracts.instance = function(constr, sig) {
+  return {
+    flat: function(val) {
+      return (val instanceof constr) && sig.flat(val);
+    },
+    server: function(s) { return function(val) {
+      if (val instanceof constr) {
+        return sig.server(s)(val);
+      }
+      else {
+        contracts.blame(s, "instance of " + constr, val, "wrong instance");
+      }
+    } },
+    client: function(s) { return function(val) {
+      if (val instanceof constr) {
+        return sig.client(s)(val);
+      }
+      else {
+        return val;
+      }
+    } }
+  };
+};
 
 contracts.obj = function(sig) {
   return {

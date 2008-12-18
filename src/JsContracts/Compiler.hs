@@ -67,13 +67,20 @@ escapeGlobals impl exportNames =
           exportedGlobals = filter (`elem` exportNames) allGlobals 
 
 
-makeExportStatement :: InterfaceItem -> ParsedStatement
-makeExportStatement (InterfaceExport id contract) = 
-  ExprStmt noPos $ AssignExpr noPos OpAssign 
-    (DotRef noPos (VarRef noPos (Id noPos "window")) (Id noPos id))
-    (compileContract id contract $ 
-       DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos id))
-makeExportStatement _ = error "makeExportStatement: expected InterfaceItem"
+makeExportStatements :: InterfaceItem -> [ParsedStatement]
+makeExportStatements (InterfaceExport id contract) = 
+  [ ExprStmt noPos $ AssignExpr noPos OpAssign 
+      (DotRef noPos (VarRef noPos (Id noPos "window")) (Id noPos id))
+      (compileContract id contract $ 
+         DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos id))
+  ]
+-- allows external code to use "instanceof id"
+makeExportStatements (InterfaceInstance id _) =
+  [ ExprStmt noPos $ AssignExpr noPos OpAssign 
+      (DotRef noPos (VarRef noPos (Id noPos "window")) (Id noPos id))
+      (DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos id))
+  ]
+makeExportStatements _ = [ ]
 
 exportRelease :: InterfaceItem -> ParsedStatement
 exportRelease (InterfaceExport id contract) = 
@@ -103,26 +110,41 @@ compileAliases :: [InterfaceItem] -> [ParsedStatement]
 compileAliases aliases = concatMap init aliases ++ concatMap def aliases where
   init (InterfaceAlias id _) = templateStatements
     $ renameVar "alias" id (stmtTemplate "var alias = { };")
-  init _ = error "compileAliases: expected InterfaceAlias (1)"
+  init (InterfaceInstance id _) = templateStatements -- same as above
+    $ renameVar "alias" id (stmtTemplate "var alias = { };")
+  init _ =  []
   def (InterfaceAlias id contract) = templateStatements
     $ renameVar "alias" id
     $ substVar "contract" (cc contract)
     (stmtTemplate "(function() { var tmp = contract;\n \
                   \              alias.client = tmp.client;\n \
+                  \              alias.flat = tmp.flat; \
                   \              alias.server = tmp.server; })(); \n")
-  def _ = error "compileAliases: expected InterfaceAlias (2)"
+  def (InterfaceInstance id contract) = templateStatements
+    $ renameVar "alias" id
+    $ substVar "contract" (cc contract)
+    $ substVar "constr" (DotRef noPos (VarRef noPos (Id noPos "impl"))
+                                (Id noPos id))
+    (stmtTemplate "(function() { \
+                  \   var tmp = contracts.instance(constr,contract); \
+                  \   alias.client = tmp.client; \
+                  \   alias.flat = tmp.flat;     \
+                  \   alias.server = tmp.server; })(); ")
+  def _ = []
 
 compile :: [ParsedStatement]  -- ^implementation
         -> [InterfaceItem]   -- ^the interface
         -> [ParsedStatement] -- ^contract library
         -> ParsedStatement -- ^encapsulated implementation
 compile impl interface boilerplateStmts =
-  let exportStmts = map makeExportStatement interfaceExports
+  let exportStmts = concatMap makeExportStatements interface
       exportNames = [n | InterfaceExport n _ <- interfaceExports]
+      instanceNames = [ n | InterfaceInstance n _
+                              <- filter isInterfaceInstance interface ]
       aliases = filter isInterfaceAlias interface
-      aliasStmts = compileAliases aliases
+      aliasStmts = compileAliases interface
       wrappedImpl = wrapImplementation (escapeGlobals impl exportNames ++ impl)
-                                        exportNames
+                                        (exportNames ++ instanceNames)
       interfaceStmts = map interfaceStatement $ 
         filter isInterfaceStatement interface
       interfaceExports = filter isInterfaceExport interface
@@ -154,8 +176,10 @@ compileRelease rawImpl implSource boilerplate interface =
      exportStatements = render $ vcat $
        map (pp.exportRelease) exports
      exportNames = [n | InterfaceExport n _ <- exports ]
+     instanceNames = 
+       [n | InterfaceInstance n _ <- filter isInterfaceInstance interface]
      exposeStatements = render $ vcat $ 
-       map pp (exposeImplementation exportNames)
+       map pp (exposeImplementation (exportNames ++ instanceNames))
 
 compileFormatted :: String -- ^implementation
                  -> String -- ^implementation source
@@ -173,20 +197,21 @@ compileFormatted rawImpl implSource boilerplate interface =
               Left err -> error (show err)
               Right (Script _ stmts) -> stmts
      exports = filter isInterfaceExport interface
-     exportStatements = concatMap (render.pp.makeExportStatement) exports 
+     exportStatements = render.vcat $ 
+       concatMap (map pp.makeExportStatements) interface
      exportNames = [n | InterfaceExport n _ <- exports ]
      aliases = filter isInterfaceAlias interface
-     aliasStatements = concatMap (render.pp) $ compileAliases aliases
+     aliasStatements = concatMap (render.pp) $ compileAliases interface
      exposeStatements = concatMap (render.pp) $ exposeImplementation exportNames
      interfaceStatements = render.vcat $ map (pp.interfaceStatement) $ 
        filter isInterfaceStatement interface
      
-
 compile' :: [ParsedStatement] -> [InterfaceItem] -> IO ParsedStatement
-compile' impl iface  = liftM (compile impl iface) boilerplate
+compile' impl iface = do
+  dataDir <- getDataDir
+  boilerplateStmts <- parseJavaScriptFromFile (dataDir</>"contracts.js")
+  return $ compile impl iface boilerplateStmts
 
-boilerplate :: IO [ParsedStatement]
-boilerplate = getDataDir >>= parseJavaScriptFromFile . (</> "contracts.js")
     
 compileContract :: String -- ^export name
                 -> Contract -> ParsedExpression -> ParsedExpression

@@ -142,8 +142,9 @@ interfaceInstance = do
 interfaceElement = interfaceExport <|> interfaceAlias
 
 interface :: CharParser st [InterfaceItem]
-interface = many $ (stmt $ interfaceElement `fap` identifier) <|> 
-  interfaceInstance <|> (liftM InterfaceStatement parseBlockStmt)
+interface = many $ interfaceInstance <|> 
+  (stmt $ interfaceElement `fap` identifier) <|> 
+  (liftM InterfaceStatement parseBlockStmt)
     where stmt p  = do { e <- p; reservedOp ";"; return e }
           fap k m = do { e <- m; f <- k; f e }
 

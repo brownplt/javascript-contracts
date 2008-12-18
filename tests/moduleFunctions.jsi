@@ -66,9 +66,13 @@ iota :: num -> customArrayOf(num);
 sum :: num ... -> num;
 reduceNumbers :: num (num num -> num) [ num, ... ] -> num;
 // TODO: constructor contract!
+instance Coords {
+  x : num,
+  y : num
+};
 // Coords :: num num -> any;
 // the arg must be an instanceof coords, but the result is not
-moveCoords :: { x : num, y : num } -> { x : num, y : num };
+moveCoords :: Coords -> { x : num, y : num };
 
 bob = num -> { val : num, next: job };
 job = num -> { val : num, next: bob };

@@ -66,6 +66,8 @@ window.Coords = function(x,y) {
   this.y = y;
 }
 
+Coords = window.Coords;
+
 moveCoords = function(c) {
   if (c instanceof window.Coords) {
     return makeCoords(c.x + 1, c.y + 1);

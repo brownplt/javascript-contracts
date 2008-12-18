@@ -12,17 +12,7 @@ data Contract
   | FixedArrayContract SourcePos [Contract]
   | ArrayContract SourcePos Contract
   | ObjectContract SourcePos [(String,Contract)]
-  | NoContract SourcePos
-
-instance Show Contract where
-  show (FlatContract _ _) = "<flat>"
-  show (NamedContract _ s) = ':':s
-  show (FunctionContract _ args _ result) = 
-    L.concat (L.intersperse " " $ map show args) ++ " -> " ++ show result
-  show (ConstructorContract _ name args) = name ++ "(" ++
-    concat (L.intersperse "," (map show args)) ++ ")"
-  show (ObjectContract _ _) = "<object-contract>"
-  show (NoContract _) = "<no-contract>"
+  deriving (Show)
 
 data InterfaceItem 
   = InterfaceExport String Contract
@@ -39,3 +29,6 @@ isInterfaceExport _ = False
 
 isInterfaceAlias (InterfaceAlias{}) = True
 isInterfaceAlias _ = False
+
+isInterfaceInstance (InterfaceInstance{}) = True
+isInterfaceInstance _ = False
