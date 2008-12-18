@@ -18,6 +18,7 @@ import JsContracts.Types
   interface = interfaceItem *
 
   interfaceItem = identifier :: contract;
+                | instance identifier object;
                 | identifier = contract;
                 | blockStmt
   
@@ -131,10 +132,18 @@ interfaceExport = do
 interfaceAlias  = do
     reservedOp "=" >> (return $ \id -> liftM (InterfaceAlias id) contract)
 
+interfaceInstance = do
+  reserved "instance"
+  id <- identifier
+  contract <- object
+  reservedOp ";"
+  return (InterfaceInstance id contract)
+
 interfaceElement = interfaceExport <|> interfaceAlias
 
 interface :: CharParser st [InterfaceItem]
-interface = many $ (stmt $ interfaceElement `fap` identifier) <|> (liftM InterfaceStatement parseBlockStmt)
+interface = many $ (stmt $ interfaceElement `fap` identifier) <|> 
+  interfaceInstance <|> (liftM InterfaceStatement parseBlockStmt)
     where stmt p  = do { e <- p; reservedOp ";"; return e }
           fap k m = do { e <- m; f <- k; f e }
 

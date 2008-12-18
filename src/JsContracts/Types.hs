@@ -28,6 +28,7 @@ data InterfaceItem
   = InterfaceExport String Contract
   | InterfaceAlias String Contract
   | InterfaceStatement { interfaceStatement :: ParsedStatement }
+  | InterfaceInstance String Contract -- ^always an object contract
   deriving (Show)
 
 isInterfaceStatement (InterfaceStatement _) = True
