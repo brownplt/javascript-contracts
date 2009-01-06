@@ -10,6 +10,7 @@ import Control.Monad
 import qualified Data.Map as M
 
 import Text.PrettyPrint.HughesPJ ( render, vcat )
+import Text.ParserCombinators.Parsec.Pos (SourcePos)
 import Paths_JsContracts -- created by Cabal
 import System.FilePath ((</>))
 import WebBits.JavaScript.Parser (ParsedExpression, ParsedStatement,
@@ -68,14 +69,14 @@ escapeGlobals impl exportNames =
 
 
 makeExportStatements :: InterfaceItem -> [ParsedStatement]
-makeExportStatements (InterfaceExport id contract) = 
+makeExportStatements (InterfaceExport id pos contract) = 
   [ ExprStmt noPos $ AssignExpr noPos OpAssign 
       (DotRef noPos (VarRef noPos (Id noPos "window")) (Id noPos id))
-      (compileContract id contract $ 
+      (compileContract id contract pos $ 
          DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos id))
   ]
 -- allows external code to use "instanceof id"
-makeExportStatements (InterfaceInstance id _) =
+makeExportStatements (InterfaceInstance id _ _) =
   [ ExprStmt noPos $ AssignExpr noPos OpAssign 
       (DotRef noPos (VarRef noPos (Id noPos "window")) (Id noPos id))
       (DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos id))
@@ -83,7 +84,7 @@ makeExportStatements (InterfaceInstance id _) =
 makeExportStatements _ = [ ]
 
 exportRelease :: InterfaceItem -> ParsedStatement
-exportRelease (InterfaceExport id contract) = 
+exportRelease (InterfaceExport id _ contract) = 
   ExprStmt noPos $ AssignExpr noPos OpAssign 
     (DotRef noPos (VarRef noPos (Id noPos "window")) (Id noPos id))
     (DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos id))
@@ -110,19 +111,19 @@ compileAliases :: [InterfaceItem] -> [ParsedStatement]
 compileAliases aliases = concatMap init aliases ++ concatMap def aliases where
   init (InterfaceAlias id _) = templateStatements
     $ renameVar "alias" id (stmtTemplate "var alias = { };")
-  init (InterfaceInstance id _) = templateStatements -- same as above
+  init (InterfaceInstance id _ _) = templateStatements -- same as above
     $ renameVar "alias" id (stmtTemplate "var alias = { };")
   init _ =  []
   def (InterfaceAlias id contract) = templateStatements
     $ renameVar "alias" id
-    $ substVar "contract" (cc id contract)
+    $ substVar "contract" (cc contract)
     (stmtTemplate "(function() { var tmp = contract;\n \
                   \              alias.client = tmp.client;\n \
                   \              alias.flat = tmp.flat; \
                   \              alias.server = tmp.server; })(); \n")
-  def (InterfaceInstance id contract) = templateStatements
+  def (InterfaceInstance id loc contract) = templateStatements
     $ renameVar "alias" id
-    $ substVar "contract" (cc id contract)
+    $ substVar "contract" (cc contract)
     $ substVar "name" (StringLit noPos id)
     $ substVar "constr" (DotRef noPos (VarRef noPos (Id noPos "impl"))
                                 (Id noPos id))
@@ -139,8 +140,8 @@ compile :: [ParsedStatement]  -- ^implementation
         -> ParsedStatement -- ^encapsulated implementation
 compile impl interface boilerplateStmts =
   let exportStmts = concatMap makeExportStatements interface
-      exportNames = [n | InterfaceExport n _ <- interfaceExports]
-      instanceNames = [ n | InterfaceInstance n _
+      exportNames = [n | InterfaceExport n _ _ <- interfaceExports]
+      instanceNames = [ n | InterfaceInstance n _ _
                               <- filter isInterfaceInstance interface ]
       aliases = filter isInterfaceAlias interface
       aliasStmts = compileAliases interface
@@ -176,9 +177,9 @@ compileRelease rawImpl implSource boilerplate interface =
      exports = filter isInterfaceExport interface
      exportStatements = render $ vcat $
        map (pp.exportRelease) exports
-     exportNames = [n | InterfaceExport n _ <- exports ]
+     exportNames = [n | InterfaceExport n _ _ <- exports ]
      instanceNames = 
-       [n | InterfaceInstance n _ <- filter isInterfaceInstance interface]
+       [n | InterfaceInstance n _ _ <- filter isInterfaceInstance interface]
      exposeStatements = render $ vcat $ 
        map pp (exposeImplementation (exportNames ++ instanceNames))
 
@@ -200,11 +201,11 @@ compileFormatted rawImpl implSource boilerplate interface =
      exports = filter isInterfaceExport interface
      exportStatements = render.vcat $ 
        concatMap (map pp.makeExportStatements) interface
-     exportNames = [n | InterfaceExport n _ <- exports ]
+     exportNames = [n | InterfaceExport n _ _ <- exports ]
      aliases = filter isInterfaceAlias interface
      aliasStatements = concatMap (render.pp) $ compileAliases interface
      instanceNames = 
-       [n | InterfaceInstance n _ <- filter isInterfaceInstance interface]
+       [n | InterfaceInstance n _ _ <- filter isInterfaceInstance interface]
      exposeStatements = concatMap (render.pp) $ 
        exposeImplementation (exportNames ++ instanceNames)
      interfaceStatements = render.vcat $ map (pp.interfaceStatement) $ 
@@ -218,73 +219,76 @@ compile' impl iface = do
 
     
 compileContract :: String -- ^export name
-                -> Contract -> ParsedExpression -> ParsedExpression
-compileContract exportId contract guardExpr =
+                -> Contract -- ^ contract
+                -> SourcePos -- ^ location of export
+                -> ParsedExpression 
+                -> ParsedExpression
+compileContract exportId contract pos guardExpr =
   CallExpr noPos (DotRef noPos (VarRef noPos (Id noPos "contracts")) 
                          (Id noPos "guard"))
-   -- 
-   [cc "" contract, guardExpr, StringLit noPos exportId, 
-    StringLit noPos "client"]
-
-
-fixedArrayTemplate = exprTemplate "contracts.fixedArray(name)(contracts)"
-arrayTemplate = exprTemplate "contracts.unsizedArray(name)(contract)"
+   [cc contract, guardExpr, StringLit noPos exportId, 
+    StringLit noPos "client", StringLit noPos (show (contractPos contract))]
+     where loc = "on " ++ exportId ++ ", defined at " ++ show pos
 
 
 
+-- |contract name compiler
+nc :: Contract
+   -> String
+nc (FlatContract pos predExpr) = 
+  "value that satisfies the predicate at " ++ show pos
 
 -- TODO: hygiene.  Use an extended annotation (Either SourcePos ...) to
 -- determine whether or not to substitute into a template.
 -- |contract compiler
-cc :: String -- ^human-readable name for the contract, not the guarded value
-   -> Contract 
-   -> ParsedExpression
-cc name (FlatContract pos predExpr) =  
-  templateExpression
+
+cc :: Contract -- ^parsed contract
+   -> ParsedExpression -- ^contract in JavaScript
+cc ctc = case ctc of
+  FlatContract _ predExpr -> templateExpression
     $ substVar "pred" predExpr 
-    $ substVar "name" (StringLit noPos (name ++ " at " ++ show pos))
-      (exprTemplate "contracts.flat(name)(pred)")
-cc name 
-  (FunctionContract pos domainContracts (Just restContract) rangeContract) =
-  templateExpression
-    $ substVar "restArg" (cc (name ++ " at " ++ show pos) restContract)
-    $ substVar "result" (cc (name ++ " at " ++ show pos) rangeContract)
-    $ substVarList "fixedArgs" 
-        (map (cc (name ++ " at " ++ show pos)) domainContracts) 
-    $ substVar "name" (StringLit noPos $ "function at " ++ show pos)
-      (exprTemplate "contracts.varArityFunc(name)([fixedArgs],restArg,result)")
-cc name (FunctionContract pos domainContracts Nothing rangeContract) = 
-  let isUndefined = DotRef noPos (VarRef noPos (Id noPos "contracts"))
+    $ substVar "name" (StringLit noPos (nc ctc))
+    $ exprTemplate "contracts.flat(name)(pred)"
+  FunctionContract pos domainContracts (Just restContract) rangeContract ->
+    templateExpression
+      $ substVar "restArg" (cc restContract)
+      $ substVar "result" (cc rangeContract)
+      $ substVarList "fixedArgs" 
+          (map cc domainContracts) 
+      $ substVar "name" (StringLit noPos $ "function at " ++ show pos)
+      $ exprTemplate 
+          "contracts.varArityFunc(name)([fixedArgs],restArg,result)"
+  FunctionContract pos domainContracts Nothing rangeContract ->
+    let isUndefined = DotRef noPos (VarRef noPos (Id noPos "contracts"))
                            (Id noPos "isUndefined")
-    in templateExpression
-         $ substVar "restArg" isUndefined
-         $ substVar "result" (cc name rangeContract)
-         $ substVarList "fixedArgs" (map (cc name) domainContracts) 
-         $ substVar "name" (StringLit noPos $ "function at " ++ show pos)
-             (exprTemplate 
-                "contracts.varArityFunc(name)([fixedArgs],restArg,result)")
-cc name (ConstructorContract pos constrName args) =
-  CallExpr noPos 
+      in templateExpression
+           $ substVar "restArg" isUndefined
+           $ substVar "result" (cc rangeContract)
+           $ substVarList "fixedArgs" (map cc domainContracts) 
+           $ substVar "name" (StringLit noPos $ "function at " ++ show pos)
+           $ exprTemplate 
+                "contracts.varArityFunc(name)([fixedArgs],restArg,result)"
+  -- User-defined contract constructor
+  ConstructorContract pos constrName args -> CallExpr noPos
     (CallExpr noPos
               (VarRef noPos (Id noPos constrName)) 
               [StringLit noPos constrName])
-    (map (cc (name ++ " at " ++ show pos)) args)
-cc name (FixedArrayContract _ elts) =  templateExpression
-  $ substVarList "contracts" (map (cc name) elts) 
-  $ substVar "name" (StringLit noPos "fixed-array")
-    fixedArrayTemplate 
-cc name (ArrayContract _ elt) =  templateExpression
-  $ substVar "contract" (cc name elt) 
-  $ substVar "name" (StringLit noPos "array")
-    arrayTemplate 
-cc name (ObjectContract pos fields) = 
-  let getField id = DotRef noPos (VarRef noPos $ Id noPos "val") (Id noPos id)
-      mkProp id = PropId noPos (Id noPos id) 
-      fieldContract (id,contract) = 
-        (id, cc (name ++ " at " ++ show pos) contract)
-    in templateExpression 
-         $ substFieldList "fieldNames" (map fieldContract fields) 
-         $ substVar "name" (StringLit noPos "name")
-           (exprTemplate "contracts.obj(name)({ fieldNames: 42 })")
-cc name (NamedContract _ nameRef) = 
-  VarRef noPos (Id noPos nameRef)
+    (map cc args)
+  FixedArrayContract pos elts -> templateExpression
+    $ substVarList "contracts" (map cc elts) 
+    $ substVar "name" (StringLit noPos "fixed-array")
+    $ exprTemplate "contracts.fixedArray(name)(contracts)"
+  ArrayContract _ elt -> templateExpression
+    $ substVar "contract" (cc elt) 
+    $ substVar "name" (StringLit noPos "array")
+    $ exprTemplate "contracts.unsizedArray(name)(contract)"
+  ObjectContract pos fields ->
+    let getField id = DotRef noPos (VarRef noPos $ Id noPos "val") (Id noPos id)
+        mkProp id = PropId noPos (Id noPos id) 
+        fieldContract (id,contract) = (id, cc contract)
+      in templateExpression 
+           $ substFieldList "fieldNames" (map fieldContract fields) 
+           $ substVar "name" (StringLit noPos "name")
+           $ exprTemplate "contracts.obj(name)({ fieldNames: 42 })"
+  NamedContract _ nameRef ->
+    VarRef noPos (Id noPos nameRef)

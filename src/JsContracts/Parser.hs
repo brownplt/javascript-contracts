@@ -127,7 +127,9 @@ flat = do
   return (FlatContract pos expr)
        
 interfaceExport = do
-    reservedOp "::" >> (return $ \id -> liftM (InterfaceExport id) contract)
+    reservedOp "::"
+    return $ \id -> 
+      liftM2 (InterfaceExport id) getPosition contract
 
 interfaceAlias  = do
     reservedOp "=" >> (return $ \id -> liftM (InterfaceAlias id) contract)
@@ -135,9 +137,10 @@ interfaceAlias  = do
 interfaceInstance = do
   reserved "instance"
   id <- identifier
+  pos <- getPosition
   contract <- object
   reservedOp ";"
-  return (InterfaceInstance id contract)
+  return (InterfaceInstance id pos contract)
 
 interfaceElement = interfaceExport <|> interfaceAlias
 

@@ -14,11 +14,22 @@ data Contract
   | ObjectContract SourcePos [(String,Contract)]
   deriving (Show)
 
+
+contractPos :: Contract -> SourcePos
+contractPos ctc = case ctc of
+  FlatContract p _ -> p
+  NamedContract p _ -> p
+  FunctionContract p _ _ _ -> p
+  ConstructorContract p _ _ -> p
+  FixedArrayContract p _ -> p
+  ArrayContract p _ -> p
+  ObjectContract p _ -> p
+
 data InterfaceItem 
-  = InterfaceExport String Contract
+  = InterfaceExport String SourcePos Contract
   | InterfaceAlias String Contract
   | InterfaceStatement { interfaceStatement :: ParsedStatement }
-  | InterfaceInstance String Contract -- ^always an object contract
+  | InterfaceInstance String SourcePos Contract -- ^always an object contract
   deriving (Show)
 
 isInterfaceStatement (InterfaceStatement _) = True

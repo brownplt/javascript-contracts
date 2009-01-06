@@ -16,16 +16,18 @@ contracts.zipWith = function(f,arr1,arr2) {
   return dest;
 };
 
-contracts.blame = function(guilty, expected, received, message) {
+contracts.blame = function(guilty,expected,received,message,loc) {
   var guiltyMsg = typeof(guilty) == "string" 
                     ? guilty : guilty.value;
-  var msg = guiltyMsg + " violated a contract; expected " + expected
-    + " but received " + received + "; " + message;
+  var msg = guiltyMsg + " violated the contract at " + loc + "; expected " + 
+             expected + " but received " + received + "; " + message;
   var err = new Error(msg);
   err.guilty = msg;
   err.blamed = guiltyMsg;
   err.expected = expected;
   err.received = received;
+  err.guardLoc = loc;
+  try { console.log(err); } catch(_) { };
   throw err;
 }
 
@@ -39,17 +41,17 @@ contracts.flat = function(name) {
   return function(pred) {
     return {
       pred: function(val) { return pred(val); },
-      server: function(s) {
+      server: function(s,loc) {
         return function(val) {
           if (pred(val)) { 
             return val; 
             }
           else { 
-            contracts.blame(s, name, val, "does not satisfy the predicate"); 
+            contracts.blame(s,name,val,"does not satisfy the predicate",loc);
          }
         };
       },
-      client: function(s) {
+      client: function(s,loc) {
         return function(val) { return val; };
       }
     };
@@ -67,20 +69,20 @@ contracts.unsizedArray = function(name) {
         }
         return true;
       },
-      server: function(s) {
+      server: function(s,loc) {
         return function(val) {
           if (val instanceof Array) {
-            return contracts.map(elt.server(s),val);
+            return contracts.map(elt.server(s,loc),val);
           }
           else {
-            contracts.blame(s, name, val, "not an array");
+            contracts.blame(s, name, val, "not an array",loc);
           }
         };
       },
-      client: function(s) {
+      client: function(s,loc) {
         return function(val) {
           if (val instanceof Array) {
-            return contracts.map(elt.client(s),val);
+            return contracts.map(elt.client(s,loc),val);
           }
           else {
             return val;
@@ -104,26 +106,26 @@ contracts.fixedArray = function(name) {
         }
         return true;
       },
-      server: function(s) {
+      server: function(s,loc) {
         return function(val) {
           if (val instanceof Array && val.length == elts.length) {
             var result = [ ];
             for (var i = 0; i < elts.length; i++) {
-              result.push(elts[i].server(s)(val[i]));
+              result.push(elts[i].server(s,loc)(val[i]));
             }
             return result;
           }
           else {
-            contracts.blame(s, name, val, "not an array of the right size");
+            contracts.blame(s,name,val,"not an array of the right size",loc);
           }
         };
       },
-      client: function(s) {
+      client: function(s,loc) {
         return function(val) {
           if (val instanceof Array && val.length == elts.length) {
             var result = [ ];
             for (var i = 0; i < elts.length; i++) {
-              result.push(elts[i].client(s)(val[i]));
+              result.push(elts[i].client(s,loc)(val[i]));
             }
             return result;
           }
@@ -145,33 +147,33 @@ contracts.varArityFunc = function(name) {
     return {
       isHigherOrder: true,
       flat: function(val) { return typeof(val) == "function"; },
-      server: function(s) {
+      server: function(s,loc) {
         return function(proc) {
           if (typeof(proc) == "function") {
             return function() {
               var guardedArgs = contracts.zipWith(function(ctc,arg) {
-                return ctc.client(s)(arg);
+                return ctc.client(s,loc)(arg);
               }, fixedArgs, arguments);
               for (var i = fixedArgs.length; i < arguments.length; i++) {
-                guardedArgs.push(restArgs.client(s)(arguments[i]));
+                guardedArgs.push(restArgs.client(s,loc)(arguments[i]));
               }
-              return result.server(s)(proc.apply(this, guardedArgs));
+              return result.server(s,loc)(proc.apply(this, guardedArgs));
             };
           }
-          else { contracts.blame(s, name, proc, "not a function"); }
+          else { contracts.blame(s,name, proc,"not a function",loc); }
         }
       },
-      client: function(s) {
+      client: function(s,loc) {
         return function(proc) {
           if (typeof(proc) == "function") {
             return function() {
               var guardedArgs = contracts.zipWith(function(ctc,arg) {
-                return ctc.server(s)(arg);
+                return ctc.server(s,loc)(arg);
               }, fixedArgs, arguments);
               for (var i = fixedArgs.length; i < arguments.length; i++) {
-                guardedArgs.push(restArgs.server(s)(arguments[i]));
+                guardedArgs.push(restArgs.server(s,loc)(arguments[i]));
               }
-              return result.client(s)(proc.apply(this, guardedArgs));
+              return result.client(s,loc)(proc.apply(this, guardedArgs));
             };
           }
           else {
@@ -192,19 +194,19 @@ contracts.instance = function(name) {
         return (typeof(val) == "object" || typeof(val) == "function") &&
                (val instanceof constr) && sig.flat(val);
       },
-      server: function(s) { return function(val) {
+      server: function(s,loc) { return function(val) {
         if ((typeof(val) == "object" || typeof(val) == "function") && 
             (val instanceof constr)) {
-          return sig.server(s)(val);
+          return sig.server(s,loc)(val);
         }
         else {
-          contracts.blame(s, name, val, "wrong instance");
+          contracts.blame(s, name, val, "wrong instance",loc);
         }
       } },
-      client: function(s) { return function(val) {
+      client: function(s,loc) { return function(val) {
         if ((typeof(val) == "object" || typeof(val) == "function") && 
             (val instanceof constr)) {
-          return sig.client(s)(val);
+          return sig.client(s,loc)(val);
         }
         else {
           return val;
@@ -223,26 +225,26 @@ contracts.obj = function(name) {
         }
         return true;
       },
-      server: function(s) {
+      server: function(s,loc) {
         return function (obj) {
           var constr = function() { };
           constr.prototype = obj;
           var guardedObj = new constr();
           
           for (var field in sig) {
-            guardedObj[field] = sig[field].server(s)(obj[field]);
+            guardedObj[field] = sig[field].server(s,loc)(obj[field]);
           }
           return guardedObj;
         };
       },
-      client: function(s) {
+      client: function(s,loc) {
         return function (obj) {
           var constr = function() { };
           constr.prototype = obj;
           var guardedObj = new constr();
           
           for (var field in sig) {
-            guardedObj[field] = sig[field].client(s)(obj[field]);
+            guardedObj[field] = sig[field].client(s,loc)(obj[field]);
           }
           return guardedObj;
         };
@@ -257,14 +259,14 @@ contracts.obj = function(name) {
 // context by examining the stack when val is called.
 // if !ctc.isHigherOrder, the name of the calling context is the name of the
 // definition point (neg)
-contracts.guard = function(ctc,val,pos,neg) {
+contracts.guard = function(ctc,val,pos,neg,loc) {
   if (ctc.isHigherOrder) {
     if (typeof(val) != "function") {
-      contracts.blame(pos, "a function", proc, "not a function"); 
+      contracts.blame(pos, "a function", proc, "not a function","guard"); 
     }
     else {
       var deferredNeg = { value: "not called" };
-      var fn = ctc.client(deferredNeg)(ctc.server(pos)(val));
+      var fn = ctc.client(deferredNeg,loc)(ctc.server(pos,loc)(val));
       return function() {
         deferredNeg.value = contracts.stackTrace();
         return fn.apply(this,arguments);
@@ -272,7 +274,7 @@ contracts.guard = function(ctc,val,pos,neg) {
     }
   }
   else {
-    return ctc.client(neg)(ctc.server(pos)(val));
+    return ctc.client(neg,loc)(ctc.server(pos,loc)(val));
   }
 };
 
