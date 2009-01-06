@@ -47,17 +47,20 @@ function testExn(resultThunk,expectedMsg) {
     print("Expected exception " + expectedMsg + "; evaluated to " + result); 
   }
   catch(e) {
-    if (e.guilty) {
-      // a ContractViolationException
-      return (typeof(e.guilty) == "string" && e.guilty.match(expectedMsg)) ||
-             (e.guilty.value.match(expectedMsg));
+    if (e.guilty && typeof(e.guilty) == "string" && 
+        e.guilty.match(expectedMsg)) {
+      // a contract violation
+      return true;
     }
-    else if (typeof(e) == "string"){
+    else if (typeof(e) == "string" && e.match(expectedMsg)) {
       // for testing, a string-value exception.
-      return e.match(expectedMsg);
+      return true;
     }
     else {
-     print("Excepted exception " + expectedMsg + "; got exception " + e);
+     print("Expected exception " + expectedMsg + "; got exception " + e);
+     print("\n");
+     print(e.guilty);
+     print("\n");
      throw "test failed";
     }
   }
@@ -65,7 +68,10 @@ function testExn(resultThunk,expectedMsg) {
 }
 
 // These get "macro-expanded" to thunk the result.
+
 test(add(2,3), 5);
+
+
 testExn(sub1Broken(10),"sub1Broken");
 test(div(50,5), 10);
 testExn(div(20,0), "client");
@@ -103,3 +109,4 @@ testExn(moveCoords({ x: 10, y: 20 }), "client");
 test(forever(10).val,10);
 test(forever(10).next(20).val,20);
 test(forever(10).next(20).next(30).val,30);
+

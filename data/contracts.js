@@ -22,102 +22,117 @@ contracts.blame = function(guilty, expected, received, message) {
   var msg = guiltyMsg + " violated a contract; expected " + expected
     + " but received " + received + "; " + message;
   var err = new Error(msg);
-  err.guilty = guiltyMsg;
+  err.guilty = msg;
+  err.blamed = guiltyMsg;
   err.expected = expected;
   err.received = received;
-  console.log(err);
   throw err;
 }
 
-contracts.flat = function(pred,predName) {
-  return {
-    pred: function(val) { return pred(val); },
-    server: function(s) {
-      return function(val) {
-        if (pred(val)) { return val; }
-        else { contracts.blame(s,predName, val, 
-                               "does not satisfy the predicate"); }
-      };
-    },
-    client: function(s) {
-      return function(val) { return val; };
-    }
+// The type of a contract combinator is: name -> args ... -> contract
+//
+// name is a human-readable name for the contract.  args .. are constructor-
+// specified arguments and contract is the resulting contract.
+ 
+
+contracts.flat = function(name) {
+  return function(pred) {
+    return {
+      pred: function(val) { return pred(val); },
+      server: function(s) {
+        return function(val) {
+          if (pred(val)) { 
+            return val; 
+            }
+          else { 
+            contracts.blame(s, name, val, "does not satisfy the predicate"); 
+         }
+        };
+      },
+      client: function(s) {
+        return function(val) { return val; };
+      }
+    };
   };
 };
 
 
-contracts.unsizedArray = function(elt) {
-  return {
-    pred: function(val) {
-      return val instanceof Array;
-      for (var i = 0; i < val.length; i++) {
-        if (!(elt.flat(val[i]))) { return false; }
+contracts.unsizedArray = function(name) {
+  return function(elt) {
+    return {
+      pred: function(val) {
+        return val instanceof Array;
+        for (var i = 0; i < val.length; i++) {
+          if (!(elt.flat(val[i]))) { return false; }
+        }
+        return true;
+      },
+      server: function(s) {
+        return function(val) {
+          if (val instanceof Array) {
+            return contracts.map(elt.server(s),val);
+          }
+          else {
+            contracts.blame(s, name, val, "not an array");
+          }
+        };
+      },
+      client: function(s) {
+        return function(val) {
+          if (val instanceof Array) {
+            return contracts.map(elt.client(s),val);
+          }
+          else {
+            return val;
+          }
+        }
       }
-      return true;
-    },
-    server: function(s) {
-      return function(val) {
-        if (val instanceof Array) {
-          return contracts.map(elt.server(s),val);
-        }
-        else {
-          contracts.blame(s,"[ " + elt + ", ... ]", val, "not an array");
-        }
-      };
-    },
-    client: function(s) {
-      return function(val) {
-        if (val instanceof Array) {
-          return contracts.map(elt.client(s),val);
-        }
-        else {
-          return val;
-        }
-      }
-    }
+    };
   };
 };
 
-contracts.fixedArray = function() {
-  var elts = arguments;
-  return {
-    pred: function(val) {
-      if  (!(val instanceof Array && val.length == elts.length)) {
-        return false;
-      }
-      for (var i = 0; i < val.length; i++) {
-        if (!elts[i].flat(val[i])) { return false; }
-      }
-      return true;
-    },
-    server: function(s) {
-      return function(val) {
-        if (val instanceof Array && val.length == elts.length) {
-          var result = [ ];
-          for (var i = 0; i < elts.length; i++) {
-            result.push(elts[i].server(s)(val[i]));
+contracts.fixedArray = function(name) {
+  return function() {
+    var elts = arguments;
+    return {
+      pred: function(val) {
+        if  (!(val instanceof Array && val.length == elts.length)) {
+          return false;
+        }
+        for (var i = 0; i < val.length; i++) {
+          if (!elts[i].flat(val[i])) { return false; }
+        }
+        return true;
+      },
+      server: function(s) {
+        return function(val) {
+          if (val instanceof Array && val.length == elts.length) {
+            var result = [ ];
+            for (var i = 0; i < elts.length; i++) {
+              result.push(elts[i].server(s)(val[i]));
+            }
+            return result;
           }
-          return result;
-        }
-        else {
-          contracts.blame(s, elts, val, "not an array of the right size");
-        }
-      };
-    },
-    client: function(s) {
-      return function(val) {
-        if (val instanceof Array && val.length == elts.length) {
-          var result = [ ];
-          for (var i = 0; i < elts.length; i++) {
-            result.push(elts[i].client(s)(val[i]));
+          else {
+            contracts.blame(s, name, val, "not an array of the right size");
           }
-          return result;
-        }
-        else {
-          return val;
+        };
+      },
+      client: function(s) {
+        return function(val) {
+          if (val instanceof Array && val.length == elts.length) {
+            var result = [ ];
+            for (var i = 0; i < elts.length; i++) {
+              result.push(elts[i].client(s)(val[i]));
+            }
+            return result;
+          }
+          else {
+            return val;
+          }
         }
       }
-    }
+    };
   };
 };
 
@@ -125,108 +140,114 @@ contracts.isUndefined = contracts.flat(function(val) {
   return val === undefined;
 });
 
-contracts.varArityFunc = function(fixedArgs,restArgs,result) {
-  return {
-    isHigherOrder: true,
-    flat: function(val) { return typeof(val) == "function"; },
-    server: function(s) {
-      return function(proc) {
-        if (typeof(proc) == "function") {
-          return function() {
-            var guardedArgs = contracts.zipWith(function(ctc,arg) {
-              return ctc.client(s)(arg);
-            }, fixedArgs, arguments);
-            for (var i = fixedArgs.length; i < arguments.length; i++) {
-              guardedArgs.push(restArgs.client(s)(arguments[i]));
-            }
-            return result.server(s)(proc.apply(this, guardedArgs));
-          };
+contracts.varArityFunc = function(name) {
+  return function(fixedArgs,restArgs,result) {
+    return {
+      isHigherOrder: true,
+      flat: function(val) { return typeof(val) == "function"; },
+      server: function(s) {
+        return function(proc) {
+          if (typeof(proc) == "function") {
+            return function() {
+              var guardedArgs = contracts.zipWith(function(ctc,arg) {
+                return ctc.client(s)(arg);
+              }, fixedArgs, arguments);
+              for (var i = fixedArgs.length; i < arguments.length; i++) {
+                guardedArgs.push(restArgs.client(s)(arguments[i]));
+              }
+              return result.server(s)(proc.apply(this, guardedArgs));
+            };
+          }
+          else { contracts.blame(s, name, proc, "not a function"); }
         }
-        else { contracts.blame(s, "a function", proc, "not a function"); }
+      },
+      client: function(s) {
+        return function(proc) {
+          if (typeof(proc) == "function") {
+            return function() {
+              var guardedArgs = contracts.zipWith(function(ctc,arg) {
+                return ctc.server(s)(arg);
+              }, fixedArgs, arguments);
+              for (var i = fixedArgs.length; i < arguments.length; i++) {
+                guardedArgs.push(restArgs.server(s)(arguments[i]));
+              }
+              return result.client(s)(proc.apply(this, guardedArgs));
+            };
+          }
+          else {
+            return proc;
+          }
+        };
       }
-    },
-    client: function(s) {
-      return function(proc) {
-        if (typeof(proc) == "function") {
-          return function() {
-            var guardedArgs = contracts.zipWith(function(ctc,arg) {
-              return ctc.server(s)(arg);
-            }, fixedArgs, arguments);
-            for (var i = fixedArgs.length; i < arguments.length; i++) {
-              guardedArgs.push(restArgs.server(s)(arguments[i]));
-            }
-            return result.client(s)(proc.apply(this, guardedArgs));
-          };
-        }
-        else {
-          return proc;
-        }
-      };
-    }
+    };
   };
 };
 
 // Ensures value is an instanceof constr before checking that its shape
 // matches sig. constrId is a human-readable name for the constructor.
-contracts.instance = function(constr, constrId, sig) {
-  return {
-    flat: function(val) {
-      return (typeof(val) == "object" || typeof(val) == "function") &&
-             (val instanceof constr) && sig.flat(val);
-    },
-    server: function(s) { return function(val) {
-      if ((typeof(val) == "object" || typeof(val) == "function") && 
-          (val instanceof constr)) {
-        return sig.server(s)(val);
-      }
-      else {
-        contracts.blame(s, "instance of " + constrId, val, "wrong instance");
-      }
-    } },
-    client: function(s) { return function(val) {
-      if ((typeof(val) == "object" || typeof(val) == "function") && 
-          (val instanceof constr)) {
-        return sig.client(s)(val);
-      }
-      else {
-        return val;
-      }
-    } }
+contracts.instance = function(name) {
+  return function(constr, sig) {
+    return {
+      flat: function(val) {
+        return (typeof(val) == "object" || typeof(val) == "function") &&
+               (val instanceof constr) && sig.flat(val);
+      },
+      server: function(s) { return function(val) {
+        if ((typeof(val) == "object" || typeof(val) == "function") && 
+            (val instanceof constr)) {
+          return sig.server(s)(val);
+        }
+        else {
+          contracts.blame(s, name, val, "wrong instance");
+        }
+      } },
+      client: function(s) { return function(val) {
+        if ((typeof(val) == "object" || typeof(val) == "function") && 
+            (val instanceof constr)) {
+          return sig.client(s)(val);
+        }
+        else {
+          return val;
+        }
+      } }
+    };
   };
 };
 
-contracts.obj = function(sig) {
-  return {
-    flat: function(val) {
-      for (var field in sig) {
-        if (!(sig[field].flat(val[field]))) { return false; }
+contracts.obj = function(name) {
+  return function(sig) {
+    return {
+      flat: function(val) {
+        for (var field in sig) {
+          if (!(sig[field].flat(val[field]))) { return false; }
+        }
+        return true;
+      },
+      server: function(s) {
+        return function (obj) {
+          var constr = function() { };
+          constr.prototype = obj;
+          var guardedObj = new constr();
+          
+          for (var field in sig) {
+            guardedObj[field] = sig[field].server(s)(obj[field]);
+          }
+          return guardedObj;
+        };
+      },
+      client: function(s) {
+        return function (obj) {
+          var constr = function() { };
+          constr.prototype = obj;
+          var guardedObj = new constr();
+          
+          for (var field in sig) {
+            guardedObj[field] = sig[field].client(s)(obj[field]);
+          }
+          return guardedObj;
+        };
       }
-      return true;
-    },
-    server: function(s) {
-      return function (obj) {
-        var constr = function() { };
-        constr.prototype = obj;
-        var guardedObj = new constr();
-        
-        for (var field in sig) {
-          guardedObj[field] = sig[field].server(s)(obj[field]);
-        }
-        return guardedObj;
-      };
-    },
-    client: function(s) {
-      return function (obj) {
-        var constr = function() { };
-        constr.prototype = obj;
-        var guardedObj = new constr();
-        
-        for (var field in sig) {
-          guardedObj[field] = sig[field].client(s)(obj[field]);
-        }
-        return guardedObj;
-      };
-    }
+    };
   };
 };
 
@@ -301,5 +322,6 @@ contracts.stackTrace = function() {
           currentFunction = currentFunction.caller;
       }
   }
-  return callstack.join(" ");
+
+  return callstack.length == 0 ? "client" : callstack.join(" ");
 };

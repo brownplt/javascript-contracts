@@ -3,6 +3,7 @@
 > import qualified Data.List as L
 > import System.Directory
 > import System.Process (runCommand,waitForProcess)
+> import System.IO (hPutStrLn, stderr)
 
 > isHaskellFile file = ".lhs" `L.isSuffixOf` file || ".hs" `L.isSuffixOf` file
 
@@ -19,12 +20,9 @@
 >   let cmd = "cd tests && ghc  -XNoMonomorphismRestriction -fglasgow-exts " ++
 >             "-package HUnit -package WebBits -i../src:../dist/build/autogen -e \"" ++ 
 >             testExpr ++ " >> return ()\" " ++ moduleLine
->   putStrLn "Testing command is:"
->   putStrLn cmd
->   putStrLn "\nLoading tests..."
 >   handle <- runCommand cmd
 >   waitForProcess handle
->   putStrLn "Testing complete.  Errors reported above (if any)."
+>   hPutStrLn stderr "Testing complete.  Errors reported above (if any)."
  
 
 > main = defaultMainWithHooks (simpleUserHooks { runTests = testMain })

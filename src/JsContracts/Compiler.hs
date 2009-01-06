@@ -123,11 +123,11 @@ compileAliases aliases = concatMap init aliases ++ concatMap def aliases where
   def (InterfaceInstance id contract) = templateStatements
     $ renameVar "alias" id
     $ substVar "contract" (cc id contract)
-    $ substVar "constrId" (StringLit noPos id)
+    $ substVar "name" (StringLit noPos id)
     $ substVar "constr" (DotRef noPos (VarRef noPos (Id noPos "impl"))
                                 (Id noPos id))
     (stmtTemplate "(function() { \
-                  \   var tmp = contracts.instance(constr,constrId,contract); \
+                  \   var tmp = contracts.instance(name)(constr,contract); \
                   \   alias.client = tmp.client; \
                   \   alias.flat = tmp.flat;     \
                   \   alias.server = tmp.server; })(); ")
@@ -227,27 +227,23 @@ compileContract exportId contract guardExpr =
     StringLit noPos "client"]
 
 
-functionTemplate :: JavaScriptTemplate
-functionTemplate = exprTemplate 
-  "contracts.varArityFunc([fixedArgs],restArg,result)"
+fixedArrayTemplate = exprTemplate "contracts.fixedArray(name)(contracts)"
+arrayTemplate = exprTemplate "contracts.unsizedArray(name)(contract)"
 
-fixedArrayTemplate = exprTemplate "contracts.fixedArray(contracts)"
-arrayTemplate = exprTemplate "contracts.unsizedArray(contract)"
 
-objectTemplate :: JavaScriptTemplate
-objectTemplate = exprTemplate "contracts.obj({ fieldNames: 42 })"
+
 
 -- TODO: hygiene.  Use an extended annotation (Either SourcePos ...) to
 -- determine whether or not to substitute into a template.
--- |Core contract compiler
+-- |contract compiler
 cc :: String -- ^human-readable name for the contract, not the guarded value
    -> Contract 
    -> ParsedExpression
 cc name (FlatContract pos predExpr) =  
   templateExpression
     $ substVar "pred" predExpr 
-    $ substVar "contractName" (StringLit noPos (name ++ " at " ++ show pos))
-      (exprTemplate "contracts.flat(pred,contractName)")
+    $ substVar "name" (StringLit noPos (name ++ " at " ++ show pos))
+      (exprTemplate "contracts.flat(name)(pred)")
 cc name 
   (FunctionContract pos domainContracts (Just restContract) rangeContract) =
   templateExpression
@@ -255,27 +251,40 @@ cc name
     $ substVar "result" (cc (name ++ " at " ++ show pos) rangeContract)
     $ substVarList "fixedArgs" 
         (map (cc (name ++ " at " ++ show pos)) domainContracts) 
-      functionTemplate
-cc name (FunctionContract _ domainContracts Nothing rangeContract) = 
+    $ substVar "name" (StringLit noPos $ "function at " ++ show pos)
+      (exprTemplate "contracts.varArityFunc(name)([fixedArgs],restArg,result)")
+cc name (FunctionContract pos domainContracts Nothing rangeContract) = 
   let isUndefined = DotRef noPos (VarRef noPos (Id noPos "contracts"))
                            (Id noPos "isUndefined")
     in templateExpression
          $ substVar "restArg" isUndefined
          $ substVar "result" (cc name rangeContract)
          $ substVarList "fixedArgs" (map (cc name) domainContracts) 
-           functionTemplate
+         $ substVar "name" (StringLit noPos $ "function at " ++ show pos)
+             (exprTemplate 
+                "contracts.varArityFunc(name)([fixedArgs],restArg,result)")
 cc name (ConstructorContract pos constrName args) =
-  CallExpr noPos (VarRef noPos (Id noPos constrName)) 
-  (map (cc (name ++ " at " ++ show pos)) args)
+  CallExpr noPos 
+    (CallExpr noPos
+              (VarRef noPos (Id noPos constrName)) 
+              [StringLit noPos constrName])
+    (map (cc (name ++ " at " ++ show pos)) args)
 cc name (FixedArrayContract _ elts) =  templateExpression
-  $ substVarList "contracts" (map (cc name) elts) fixedArrayTemplate 
+  $ substVarList "contracts" (map (cc name) elts) 
+  $ substVar "name" (StringLit noPos "fixed-array")
+    fixedArrayTemplate 
 cc name (ArrayContract _ elt) =  templateExpression
-  $ substVar "contract" (cc name elt) arrayTemplate 
+  $ substVar "contract" (cc name elt) 
+  $ substVar "name" (StringLit noPos "array")
+    arrayTemplate 
 cc name (ObjectContract pos fields) = 
   let getField id = DotRef noPos (VarRef noPos $ Id noPos "val") (Id noPos id)
       mkProp id = PropId noPos (Id noPos id) 
       fieldContract (id,contract) = 
         (id, cc (name ++ " at " ++ show pos) contract)
     in templateExpression 
-         $ substFieldList "fieldNames" (map fieldContract fields) objectTemplate
-cc name (NamedContract _ nameRef) = VarRef noPos (Id noPos nameRef)
+         $ substFieldList "fieldNames" (map fieldContract fields) 
+         $ substVar "name" (StringLit noPos "name")
+           (exprTemplate "contracts.obj(name)({ fieldNames: 42 })")
+cc name (NamedContract _ nameRef) = 
+  VarRef noPos (Id noPos nameRef)

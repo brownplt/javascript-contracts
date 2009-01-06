@@ -16,28 +16,30 @@
 
   function isArray(x) { return x instanceof Array; }
 
-  var customArrayOf = function(eltContract) {
-    return {
-      server: function(s) {
-        return function(val) {
-          if (val instanceof Array) {
-            return contracts.map(eltContract.server(s),val);
-          }
-          else {
-            contracts.blame("customArrayOf violated by " + s);
-          }
-        };
-      },
-      client: function(s) {
-        return function(val) {
-          if (val instanceof Array) {
-            return contracts.map(eltContract.client(s),val);
-          }
-          else {
-            return val;
-          }
-        };
-      }
+  var customArrayOf = function(name) {
+    return function(eltContract) {
+      return {
+        server: function(s) {
+          return function(val) {
+            if (val instanceof Array) {
+              return contracts.map(eltContract.server(s),val);
+            }
+            else {
+              contracts.blame("customArrayOf violated by " + s);
+            }
+          };
+        },
+        client: function(s) {
+          return function(val) {
+            if (val instanceof Array) {
+              return contracts.map(eltContract.client(s),val);
+            }
+            else {
+              return val;
+            }
+          };
+        }
+      };
     };
   };
 }
