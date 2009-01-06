@@ -47,9 +47,14 @@ function testExn(resultThunk,expectedMsg) {
     print("Expected exception " + expectedMsg + "; evaluated to " + result); 
   }
   catch(e) {
-    if ((e.guilty && e.guilty.match(expectedMsg)) || 
-        (e.match && e.match(expectedMsg))) {
-      return true;
+    if (e.guilty) {
+      // a ContractViolationException
+      return (typeof(e.guilty) == "string" && e.guilty.match(expectedMsg)) ||
+             (e.guilty.value.match(expectedMsg));
+    }
+    else if (typeof(e) == "string"){
+      // for testing, a string-value exception.
+      return e.match(expectedMsg);
     }
     else {
      print("Excepted exception " + expectedMsg + "; got exception " + e);
