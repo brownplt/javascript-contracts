@@ -16,26 +16,17 @@ contracts.zipWith = function(f,arr1,arr2) {
   return dest;
 };
 
-contracts.ContractViolationException  = function(guilty, expected, received, 
-                                                 message) { 
-  this.guilty = guilty;
-  this.expected = expected;
-  this.received = received;
-  this.message = message;
-};
-
-contracts.ContractViolationException.prototype = { };
-contracts.ContractViolationException.prototype.toString = function() {
-  var guilty = typeof(this.guilty) == "string" 
-                 ? this.guilty : this.guilty.value;
-  return guilty + " violated a contract; expected " + this.expected
-    + " but received " + this.received + "; " + this.message;
-};
-      
-
 contracts.blame = function(guilty, expected, received, message) {
-  throw new contracts.ContractViolationException(guilty,expected,received,
-              message);
+  var guiltyMsg = typeof(guilty) == "string" 
+                    ? guilty : guilty.value;
+  var msg = guiltyMsg + " violated a contract; expected " + expected
+    + " but received " + received + "; " + message;
+  var err = new Error(msg);
+  err.guilty = guiltyMsg;
+  err.expected = expected;
+  err.received = received;
+  console.log(err);
+  throw err;
 }
 
 contracts.flat = function(pred,predName) {
