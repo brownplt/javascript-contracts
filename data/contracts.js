@@ -43,7 +43,7 @@ contracts.flat = function(name) {
       flat: function(val) { return pred(val); },
       server: function(s,loc) {
         return function(val) {
-          if (flat(val)) { 
+          if (pred(val)) { 
             return val; 
             }
           else { 
