@@ -40,10 +40,10 @@ contracts.blame = function(guilty,expected,received,message,loc) {
 contracts.flat = function(name) {
   return function(pred) {
     return {
-      pred: function(val) { return pred(val); },
+      flat: function(val) { return pred(val); },
       server: function(s,loc) {
         return function(val) {
-          if (pred(val)) { 
+          if (flat(val)) { 
             return val; 
             }
           else { 
@@ -62,7 +62,7 @@ contracts.flat = function(name) {
 contracts.unsizedArray = function(name) {
   return function(elt) {
     return {
-      pred: function(val) {
+      flat: function(val) {
         return val instanceof Array;
         for (var i = 0; i < val.length; i++) {
           if (!(elt.flat(val[i]))) { return false; }
@@ -97,7 +97,7 @@ contracts.fixedArray = function(name) {
   return function() {
     var elts = arguments;
     return {
-      pred: function(val) {
+      flat: function(val) {
         if  (!(val instanceof Array && val.length == elts.length)) {
           return false;
         }
