@@ -63,7 +63,7 @@ wrapImplementation impl names =
 escapeGlobals :: [ParsedStatement] -> [String] -> [ParsedStatement]
 escapeGlobals impl exportNames = 
   [VarDeclStmt noPos [VarDecl noPos (Id noPos s) Nothing] | s <- exportedGlobals]
-    where (_, globalMap, _) = staticEnvironment impl
+    where (_, globalMap,_,_) = staticEnvironment impl
           allGlobals = M.keys globalMap
           exportedGlobals = filter (`elem` exportNames) allGlobals 
 
