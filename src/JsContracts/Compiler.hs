@@ -71,14 +71,14 @@ escapeGlobals impl exportNames =
 makeExportStatements :: InterfaceItem -> [ParsedStatement]
 makeExportStatements (InterfaceExport id pos contract) = 
   [ ExprStmt noPos $ AssignExpr noPos OpAssign 
-      (DotRef noPos (VarRef noPos (Id noPos "window")) (Id noPos id))
+      (DotRef noPos (ThisRef noPos) (Id noPos id))
       (compileContract id contract pos $ 
          DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos id))
   ]
 -- allows external code to use "instanceof id"
 makeExportStatements (InterfaceInstance id _ _) =
   [ ExprStmt noPos $ AssignExpr noPos OpAssign 
-      (DotRef noPos (VarRef noPos (Id noPos "window")) (Id noPos id))
+      (DotRef noPos (ThisRef noPos) (Id noPos id))
       (DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos id))
   ]
 makeExportStatements _ = [ ]
@@ -86,7 +86,7 @@ makeExportStatements _ = [ ]
 exportRelease :: InterfaceItem -> ParsedStatement
 exportRelease (InterfaceExport id _ contract) = 
   ExprStmt noPos $ AssignExpr noPos OpAssign 
-    (DotRef noPos (VarRef noPos (Id noPos "window")) (Id noPos id))
+    (DotRef noPos (ThisRef noPos) (Id noPos id))
     (DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos id))
 exportRelease _ = error "exportRelease: expected InterfaceItem"
 
