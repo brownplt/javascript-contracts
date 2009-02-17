@@ -34,8 +34,7 @@ testExecution implPath interactionsJs = do
   iface <- parseInterface (implPath ++ "i")
   impl' <- compile' impl iface
   interactions <- readFile interactionsJs
-  let js = "window = { };" ++ (render $ pp $ impl') ++ "with(window) { \n" ++
-           expandTests interactions ++ "}\n"
+  let js = "window = {};\n" ++ (render $ pp $ impl') ++ expandTests interactions
   code <- rawSystem "java" ["org.mozilla.javascript.tools.shell.Main","-e",js]
   case code of
     ExitSuccess -> return ()

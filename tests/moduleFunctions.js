@@ -60,7 +60,6 @@ reduceNumbers = function(init,f,args) {
   return init;
 };
 
-// TODO: Constructor contract!
 window.Coords = function(x,y) {
   this.x = x;
   this.y = y;
