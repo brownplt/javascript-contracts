@@ -33,7 +33,7 @@ options =
       "encapsulate, ignoring all contracts"
   , Option ['d'] ["debug"] (NoArg Debug)
       "enable contracts and encapsulate (default)"
-  , Option ['n'] ["namespace"] (ReqArg Interface "NAMESPACE")
+  , Option ['n'] ["namespace"] (ReqArg Namespace "NAMESPACE")
       "exports names to the namespace"
   , Option ['i'] ["interface"] (ReqArg Interface "PATH")
       "path to the interface; uses module.jsi by default"
