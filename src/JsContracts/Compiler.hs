@@ -48,6 +48,25 @@ exposeImplementation names = map export names where
     [CatchClause noPos (Id noPos "_") (EmptyStmt noPos)]
     Nothing
 
+-- Given a namespace, e.g. flapjax, we get
+--
+-- window.flapjax = { };
+-- for (var ix in impl) {
+--   window.flapjax[ix] = impl[ix]; }
+exportNamespace :: String
+                -> [ParsedStatement]
+exportNamespace namespace = [decl,loop] where
+  ix = VarRef noPos (Id noPos "ix")
+  window_namespace = 
+           (DotRef noPos (VarRef noPos (Id noPos "window")) 
+                         (Id noPos namespace))
+  decl = ExprStmt noPos $ AssignExpr noPos OpAssign window_namespace
+           (ObjectLit noPos [])
+  loop = ForInStmt noPos (ForInVar (Id noPos "ix")) 
+           (VarRef noPos (Id noPos "impl")) $ ExprStmt noPos $
+             AssignExpr noPos OpAssign (BracketRef noPos window_namespace ix)
+               (BracketRef noPos (VarRef noPos (Id noPos "impl")) ix)
+
 wrapImplementation :: [ParsedStatement] -> [String] -> [ParsedStatement]
 wrapImplementation impl names = 
   [VarDeclStmt noPos [implDecl], ExprStmt noPos callThunkedImpl] where
@@ -166,11 +185,12 @@ compileRelease :: String -- ^implementation
                -> String -- ^implementation source
                -> String -- ^contract library
                -> [InterfaceItem] -- ^the interface
+               -> Maybe String -- ^the namespace name
                -> String -- ^encapsulated implementation
-compileRelease rawImpl implSource boilerplate interface =
+compileRelease rawImpl implSource boilerplate interface namespace =
   libraryHeader ++ (concat $ map (render.pp) $ escapeGlobals impl exportNames) 
     ++ rawImpl ++ exposeStatements ++ "\n}).apply(impl,[]);\n" 
-    ++ exportStatements ++ "\n})();" where
+    ++ exportStatements ++ namespaceStatements ++ "\n})();" where
      impl = case parseScriptFromString implSource rawImpl of
               Left err -> error (show err)
               Right (Script _ stmts) -> stmts
@@ -182,6 +202,9 @@ compileRelease rawImpl implSource boilerplate interface =
        [n | InterfaceInstance n _ _ <- filter isInterfaceInstance interface]
      exposeStatements = render $ vcat $ 
        map pp (exposeImplementation (exportNames ++ instanceNames))
+     namespaceStatements = case namespace of
+       Nothing -> ""
+       Just s -> render $ vcat $ map pp $ exportNamespace s
 
 compileFormatted :: String -- ^implementation
                  -> String -- ^implementation source

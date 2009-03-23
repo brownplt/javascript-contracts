@@ -20,6 +20,7 @@ data Flag
   = Help
   | Release
   | Debug
+  | Namespace String
   | Interface String
   deriving (Eq,Ord,Show)
       
@@ -32,6 +33,8 @@ options =
       "encapsulate, ignoring all contracts"
   , Option ['d'] ["debug"] (NoArg Debug)
       "enable contracts and encapsulate (default)"
+  , Option ['n'] ["namespace"] (ReqArg Interface "NAMESPACE")
+      "exports names to the namespace"
   , Option ['i'] ["interface"] (ReqArg Interface "PATH")
       "path to the interface; uses module.jsi by default"
   ]
@@ -48,6 +51,7 @@ main = do
     fail "jscc terminated"
   checkHelp opts
   (isDebugMode, opts) <- getDebugMode opts
+  (namespace, opts) <- getNamespace opts
   (ifacePath, opts) <- getInterfacePath opts nonOpts
   when (not $ null opts) $ do
     putStrLn $ "spurious arguments: " ++ (show opts)
@@ -63,7 +67,7 @@ main = do
                      then compileFormatted rawImpl implPath rawBoilerplate 
                             interface
                      else compileRelease rawImpl implPath rawBoilerplate
-                            interface
+                            interface namespace
       putStrLn result
       return () 
     otherwise -> do
@@ -79,6 +83,9 @@ checkFile path = do
 getDebugMode (Release:rest) = return (False,rest)
 getDebugMode (Debug:rest) = return (True,rest)
 getDebugMode rest = return (True,rest)
+
+getNamespace ((Namespace s):rest) = return (Just s, rest)
+getNamespace rest = return (Nothing,rest)
 
 checkHelp (Help:_) = do
   putStrLn usage
