@@ -8,8 +8,7 @@ import System.FilePath
 import System.Exit
 import Control.Monad
 
-import JsContracts.Compiler
-import JsContracts.Parser
+import Language.JavaScript.Contracts
 import Paths_JsContracts -- created by Cabal
 
 import WebBits.Common ( pp )

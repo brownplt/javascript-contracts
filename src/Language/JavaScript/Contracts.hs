@@ -2,6 +2,9 @@ module Language.JavaScript.Contracts
   ( Contract (..)
   , InterfaceItem (..)
   , compile
+  , compileFormatted
+  , compileRelease
+  , parseInterface
   , getContractLibraryPath
   ) where
 
@@ -10,6 +13,7 @@ import Paths_JsContracts -- created by Cabal
 
 import JsContracts.Types
 import JsContracts.Compiler
+import JsContracts.Parser
 
 getContractLibraryPath :: IO FilePath
 getContractLibraryPath = do
