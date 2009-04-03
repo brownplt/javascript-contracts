@@ -1,4 +1,4 @@
-module Language.JavaScript.Contracts
+module BrownPLT.JavaScript.Contracts
   ( Contract (..)
   , InterfaceItem (..)
   , compile
@@ -11,9 +11,9 @@ module Language.JavaScript.Contracts
 import System.FilePath
 import Paths_JsContracts -- created by Cabal
 
-import JsContracts.Types
-import JsContracts.Compiler
-import JsContracts.Parser
+import BrownPLT.JavaScript.Contracts.Types
+import BrownPLT.JavaScript.Contracts.Compiler
+import BrownPLT.JavaScript.Contracts.Parser
 
 getContractLibraryPath :: IO FilePath
 getContractLibraryPath = do

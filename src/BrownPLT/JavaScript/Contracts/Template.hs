@@ -1,4 +1,4 @@
-module JsContracts.Template 
+module BrownPLT.JavaScript.Contracts.Template 
   ( JavaScriptTemplate
   , exprTemplate
   , stmtTemplate
@@ -20,11 +20,11 @@ import Data.Generics
 import Text.ParserCombinators.Parsec (parse, many1)
 import Text.ParserCombinators.Parsec.Pos (initialPos, SourcePos)
 import Text.PrettyPrint.HughesPJ (render)
-import WebBits.JavaScript.PrettyPrint ()
-import WebBits.Common (pp)
-import WebBits.JavaScript.Parser
-import WebBits.JavaScript.Syntax
-import WebBits.JavaScript.Instances()
+import BrownPLT.JavaScript.PrettyPrint ()
+import BrownPLT.Common (pp)
+import BrownPLT.JavaScript.Parser
+import BrownPLT.JavaScript.Syntax
+import BrownPLT.JavaScript.Instances()
 
 
 noPos :: SourcePos

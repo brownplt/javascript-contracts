@@ -1,4 +1,4 @@
-module JsContracts.Parser
+module BrownPLT.JavaScript.Contracts.Parser
   ( interface
   , parseInterface
   ) where
@@ -9,10 +9,10 @@ import qualified Data.List as L
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Pos
-import WebBits.JavaScript.Lexer
-import WebBits.JavaScript.Parser (parseSimpleExpr', ParsedExpression, 
+import BrownPLT.JavaScript.Lexer
+import BrownPLT.JavaScript.Parser (parseSimpleExpr', ParsedExpression, 
   parseBlockStmt)
-import JsContracts.Types
+import BrownPLT.JavaScript.Contracts.Types
 
 {-
   interface = interfaceItem *

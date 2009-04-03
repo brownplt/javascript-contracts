@@ -1,8 +1,8 @@
-module JsContracts.Types where
+module BrownPLT.JavaScript.Contracts.Types where
 
 import qualified Data.List as L
 import Text.ParserCombinators.Parsec.Pos (SourcePos)
-import WebBits.JavaScript.Parser (ParsedExpression, ParsedStatement)
+import BrownPLT.JavaScript.Parser (ParsedExpression, ParsedStatement)
 
 data Contract
   = FlatContract SourcePos ParsedExpression

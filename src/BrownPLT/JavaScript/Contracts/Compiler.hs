@@ -1,4 +1,4 @@
-module JsContracts.Compiler
+module BrownPLT.JavaScript.Contracts.Compiler
   ( compile
   , compile'
   , compileFormatted
@@ -13,15 +13,15 @@ import Text.PrettyPrint.HughesPJ ( render, vcat )
 import Text.ParserCombinators.Parsec.Pos (SourcePos)
 import Paths_JsContracts -- created by Cabal
 import System.FilePath ((</>))
-import WebBits.JavaScript.Parser (ParsedExpression, ParsedStatement,
+import BrownPLT.JavaScript.Parser (ParsedExpression, ParsedStatement,
   parseJavaScriptFromFile, parseScriptFromString )
-import WebBits.JavaScript.Environment
-import WebBits.JavaScript.Syntax
-import WebBits.JavaScript.PrettyPrint ()
-import WebBits.Common (pp)
-import JsContracts.Types
-import JsContracts.Parser
-import JsContracts.Template
+import BrownPLT.JavaScript.Environment (env)
+import BrownPLT.JavaScript.Syntax
+import BrownPLT.JavaScript.PrettyPrint ()
+import BrownPLT.Common (pp)
+import BrownPLT.JavaScript.Contracts.Types
+import BrownPLT.JavaScript.Contracts.Parser
+import BrownPLT.JavaScript.Contracts.Template
 
 
 -- Given the name foo, we get
@@ -82,7 +82,7 @@ wrapImplementation impl names =
 escapeGlobals :: [ParsedStatement] -> [String] -> [ParsedStatement]
 escapeGlobals impl exportNames = 
   [VarDeclStmt noPos [VarDecl noPos (Id noPos s) Nothing] | s <- exportedGlobals]
-    where (_, globalMap,_,_) = staticEnvironment impl
+    where globalMap = snd (env M.empty impl)
           allGlobals = M.keys globalMap
           exportedGlobals = filter (`elem` exportNames) allGlobals 
 

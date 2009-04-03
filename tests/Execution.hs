@@ -10,12 +10,12 @@ import Test.HUnit.Text
 import System.Cmd
 import System.Exit
 
-import JsContracts.Compiler
-import JsContracts.Template
-import JsContracts.Parser
+import BrownPLT.JavaScript.Contracts.Compiler
+import BrownPLT.JavaScript.Contracts.Template
+import BrownPLT.JavaScript.Contracts.Parser
 
-import WebBits.Common ( pp )
-import WebBits.JavaScript.Parser ( parseJavaScriptFromFile )
+import BrownPLT.Common ( pp )
+import BrownPLT.JavaScript.Parser ( parseJavaScriptFromFile )
 
 import Text.PrettyPrint.HughesPJ ( render )
 

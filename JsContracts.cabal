@@ -1,5 +1,5 @@
 Name:           JsContracts
-Version:        0.3
+Version:        0.4
 Cabal-Version:	>= 1.2.3
 Copyright:      Copyright (c) 2008-2009 Arjun Guha and Spiridon Eliopoulos
 License:        BSD3
@@ -21,18 +21,19 @@ Library
     src
   Build-Depends:
     base>=4, mtl>=1.1.0.1, parsec<3.0.0, pretty>=0.1, containers>=0.1, syb>=0.1,
-    WebBits>=0.11.0, filepath, directory
+    WebBits>=0.13.0, filepath, directory
   ghc-options:
     -fwarn-incomplete-patterns
   Extensions:     
   Exposed-Modules:
-    Language.JavaScript.Contracts Language.JavaScript.Contracts.Interface
+    BrownPLT.JavaScript.Contracts
+    BrownPLT.JavaScript.Contracts.Interface
   Other-Modules:
     Paths_JsContracts 
-    JsContracts.Parser
-    JsContracts.Types
-    JsContracts.Compiler
-    JsContracts.Template
+    BrownPLT.JavaScript.Contracts.Parser
+    BrownPLT.JavaScript.Contracts.Types
+    BrownPLT.JavaScript.Contracts.Compiler
+    BrownPLT.JavaScript.Contracts.Template
 
 Executable jscc
   Main-Is: Jscc.hs

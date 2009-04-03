@@ -8,11 +8,11 @@ import System.FilePath
 import System.Exit
 import Control.Monad
 
-import Language.JavaScript.Contracts
+import BrownPLT.JavaScript.Contracts
 import Paths_JsContracts -- created by Cabal
 
-import WebBits.Common ( pp )
-import WebBits.JavaScript.Parser ( parseJavaScriptFromFile )
+import BrownPLT.Common ( pp )
+import BrownPLT.JavaScript.Parser ( parseJavaScriptFromFile )
 import Text.PrettyPrint.HughesPJ ( render )
 
 data Flag
