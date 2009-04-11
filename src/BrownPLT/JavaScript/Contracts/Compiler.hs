@@ -80,10 +80,9 @@ wrapImplementation impl names =
   
 escapeGlobals :: [ParsedStatement] -> [String] -> [ParsedStatement]
 escapeGlobals impl exportNames = 
-  [VarDeclStmt noPos [VarDecl noPos (Id noPos s) Nothing] | s <- exportedGlobals]
+  [VarDeclStmt noPos [VarDecl noPos (Id noPos s) Nothing] | s <- allGlobals]
     where globalMap = snd (env M.empty impl)
           allGlobals = M.keys globalMap
-          exportedGlobals = filter (`elem` exportNames) allGlobals 
 
 
 makeExportStatements :: InterfaceItem -> [ParsedStatement]
