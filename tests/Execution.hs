@@ -14,10 +14,8 @@ import BrownPLT.JavaScript.Contracts.Compiler
 import BrownPLT.JavaScript.Contracts.Template
 import BrownPLT.JavaScript.Contracts.Parser
 
-import BrownPLT.Common ( pp )
-import BrownPLT.JavaScript.Parser ( parseJavaScriptFromFile )
-
-import Text.PrettyPrint.HughesPJ ( render )
+import BrownPLT.JavaScript.Parser (parseJavaScriptFromFile)
+import BrownPLT.JavaScript.PrettyPrint (renderStatements)
 
 expandTests :: String -> String
 expandTests testSuite = renderTemplate
@@ -34,7 +32,8 @@ testExecution implPath interactionsJs = do
   iface <- parseInterface (implPath ++ "i")
   impl' <- compile' impl iface
   interactions <- readFile interactionsJs
-  let js = "window = {};\n" ++ (render $ pp $ impl') ++ expandTests interactions
+  let js = "window = {};\n" ++ (renderStatements [impl']) ++ 
+           expandTests interactions
   code <- rawSystem "java" ["org.mozilla.javascript.tools.shell.Main","-e",js]
   case code of
     ExitSuccess -> return ()

@@ -17,8 +17,7 @@ import BrownPLT.JavaScript.Parser (ParsedExpression, ParsedStatement,
   parseJavaScriptFromFile, parseScriptFromString )
 import BrownPLT.JavaScript.Environment (env)
 import BrownPLT.JavaScript.Syntax
-import BrownPLT.JavaScript.PrettyPrint ()
-import BrownPLT.Common (pp)
+import BrownPLT.JavaScript.PrettyPrint (renderStatements)
 import BrownPLT.JavaScript.Contracts.Types
 import BrownPLT.JavaScript.Contracts.Parser
 import BrownPLT.JavaScript.Contracts.Template
@@ -188,23 +187,22 @@ compileRelease :: String -- ^implementation
                -> Maybe String -- ^the namespace name
                -> String -- ^encapsulated implementation
 compileRelease rawImpl implSource boilerplate interface namespace =
-  libraryHeader ++ (concat $ map (render.pp) $ escapeGlobals impl exportNames) 
+  libraryHeader ++ (renderStatements $ escapeGlobals impl exportNames) 
     ++ rawImpl ++ exposeStatements ++ "\n}).apply(impl,[]);\n" 
     ++ exportStatements ++ namespaceStatements ++ "\n})();" where
      impl = case parseScriptFromString implSource rawImpl of
               Left err -> error (show err)
               Right (Script _ stmts) -> stmts
      exports = filter isInterfaceExport interface
-     exportStatements = render $ vcat $
-       map (pp.exportRelease) exports
+     exportStatements = renderStatements (map exportRelease exports)
      exportNames = [n | InterfaceExport n _ _ <- exports ]
      instanceNames = 
        [n | InterfaceInstance n _ _ <- filter isInterfaceInstance interface]
-     exposeStatements = render $ vcat $ 
-       map pp (exposeImplementation (exportNames ++ instanceNames))
+     exposeStatements = renderStatements
+       (exposeImplementation (exportNames ++ instanceNames))
      namespaceStatements = case namespace of
        Nothing -> ""
-       Just s -> render $ vcat $ map pp $ exportNamespace s
+       Just s -> renderStatements (exportNamespace s)
 
 compileFormatted :: String -- ^implementation
                  -> String -- ^implementation source
@@ -212,7 +210,7 @@ compileFormatted :: String -- ^implementation
                  -> [InterfaceItem] -- ^the interface
                  -> String -- ^encapsulated implementation
 compileFormatted rawImpl implSource boilerplate interface =
-  libraryHeader ++ (concat $ map (render.pp) $ escapeGlobals impl exportNames) 
+  libraryHeader ++ (renderStatements $ escapeGlobals impl exportNames) 
     ++ rawImpl
     ++ exposeStatements ++ "\n}).apply(impl,[]);\n" ++ boilerplate 
     ++ interfaceStatements
@@ -222,16 +220,16 @@ compileFormatted rawImpl implSource boilerplate interface =
               Left err -> error (show err)
               Right (Script _ stmts) -> stmts
      exports = filter isInterfaceExport interface
-     exportStatements = render.vcat $ 
-       concatMap (map pp.makeExportStatements) interface
+     exportStatements = 
+       renderStatements (concatMap makeExportStatements interface)
      exportNames = [n | InterfaceExport n _ _ <- exports ]
      aliases = filter isInterfaceAlias interface
-     aliasStatements = concatMap (render.pp) $ compileAliases interface
+     aliasStatements = renderStatements (compileAliases interface)
      instanceNames = 
        [n | InterfaceInstance n _ _ <- filter isInterfaceInstance interface]
-     exposeStatements = concatMap (render.pp) $ 
+     exposeStatements = renderStatements $
        exposeImplementation (exportNames ++ instanceNames)
-     interfaceStatements = render.vcat $ map (pp.interfaceStatement) $ 
+     interfaceStatements = renderStatements $ map interfaceStatement $ 
        filter isInterfaceStatement interface
      
 compile' :: [ParsedStatement] -> [InterfaceItem] -> IO ParsedStatement

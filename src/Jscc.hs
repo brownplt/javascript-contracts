@@ -7,13 +7,9 @@ import System.Directory
 import System.FilePath
 import System.Exit
 import Control.Monad
-
 import BrownPLT.JavaScript.Contracts
 import Paths_JsContracts -- created by Cabal
-
-import BrownPLT.Common ( pp )
-import BrownPLT.JavaScript.Parser ( parseJavaScriptFromFile )
-import Text.PrettyPrint.HughesPJ ( render )
+import BrownPLT.JavaScript.Parser (parseJavaScriptFromFile)
 
 data Flag
   = Help

@@ -20,12 +20,11 @@ import Data.Generics
 import Text.ParserCombinators.Parsec (parse, many1)
 import Text.ParserCombinators.Parsec.Pos (initialPos, SourcePos)
 import Text.PrettyPrint.HughesPJ (render)
-import BrownPLT.JavaScript.PrettyPrint ()
-import BrownPLT.Common (pp)
+import BrownPLT.JavaScript.PrettyPrint (renderExpression, renderStatements)
 import BrownPLT.JavaScript.Parser
 import BrownPLT.JavaScript.Syntax
 import BrownPLT.JavaScript.Instances()
-
+import BrownPLT.JavaScript.Crawl() -- hack for instance 
 
 noPos :: SourcePos
 noPos = initialPos "template"
@@ -52,8 +51,8 @@ stmtTemplate str = case parse (many1 parseStatement) "statement template" str of
   Right stmts -> StatementTemplate stmts
   
 renderTemplate :: JavaScriptTemplate -> String
-renderTemplate (ExpressionTemplate expr) = render (pp expr)
-renderTemplate (StatementTemplate stmts) = concatMap (render . pp) stmts
+renderTemplate (ExpressionTemplate expr) = renderExpression expr
+renderTemplate (StatementTemplate stmts) = renderStatements stmts
 
 templateExpression :: JavaScriptTemplate -> ParsedExpression
 templateExpression (ExpressionTemplate expr) = expr
