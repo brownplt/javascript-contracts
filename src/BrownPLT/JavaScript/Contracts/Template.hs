@@ -39,7 +39,7 @@ data JavaScriptTemplate
   | StatementTemplate [ParsedStatement]
 
 exprTemplate :: String -> JavaScriptTemplate
-exprTemplate str = case parse parseAssignExpr "expression template" str of
+exprTemplate str = case parse assignExpr "expression template" str of
   Left err -> error ("Error parsing template: " ++ show err ++ 
                      "; template:\n\n" ++ str)
   Right expr -> ExpressionTemplate expr

@@ -42,7 +42,7 @@ exposeImplementation names = map export names where
   export n = TryStmt noPos 
     (IfSingleStmt noPos (InfixExpr noPos OpStrictNEq (var n) undef)
        (ExprStmt noPos $ AssignExpr noPos OpAssign
-          (DotRef noPos (ThisRef noPos) (Id noPos n)) 
+          (LDot noPos (ThisRef noPos) n) 
           (var n)))
     [CatchClause noPos (Id noPos "_") (EmptyStmt noPos)]
     Nothing
@@ -59,11 +59,12 @@ exportNamespace namespace = [decl,loop] where
   window_namespace = 
            (DotRef noPos (VarRef noPos (Id noPos "window")) 
                          (Id noPos namespace))
-  decl = ExprStmt noPos $ AssignExpr noPos OpAssign window_namespace
+  decl = ExprStmt noPos $ AssignExpr noPos OpAssign 
+           (LDot noPos (VarRef noPos (Id noPos "window")) namespace)
            (ObjectLit noPos [])
   loop = ForInStmt noPos (ForInVar (Id noPos "ix")) 
            (VarRef noPos (Id noPos "impl")) $ ExprStmt noPos $
-             AssignExpr noPos OpAssign (BracketRef noPos window_namespace ix)
+             AssignExpr noPos OpAssign (LBracket noPos window_namespace ix)
                (BracketRef noPos (VarRef noPos (Id noPos "impl")) ix)
 
 wrapImplementation :: [ParsedStatement] -> [String] -> [ParsedStatement]
@@ -88,14 +89,14 @@ escapeGlobals impl exportNames =
 makeExportStatements :: InterfaceItem -> [ParsedStatement]
 makeExportStatements (InterfaceExport id pos contract) = 
   [ ExprStmt noPos $ AssignExpr noPos OpAssign 
-      (DotRef noPos (ThisRef noPos) (Id noPos id))
+      (LDot noPos (ThisRef noPos) id)
       (compileContract id contract pos $ 
          DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos id))
   ]
 -- allows external code to use "instanceof id"
 makeExportStatements (InterfaceInstance id _ _) =
   [ ExprStmt noPos $ AssignExpr noPos OpAssign 
-      (DotRef noPos (ThisRef noPos) (Id noPos id))
+      (LDot noPos (ThisRef noPos) id)
       (DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos id))
   ]
 makeExportStatements _ = [ ]
@@ -103,7 +104,7 @@ makeExportStatements _ = [ ]
 exportRelease :: InterfaceItem -> ParsedStatement
 exportRelease (InterfaceExport id _ contract) = 
   ExprStmt noPos $ AssignExpr noPos OpAssign 
-    (DotRef noPos (ThisRef noPos) (Id noPos id))
+    (LDot noPos (ThisRef noPos) id)
     (DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos id))
 exportRelease _ = error "exportRelease: expected InterfaceItem"
 
