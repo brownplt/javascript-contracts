@@ -262,7 +262,7 @@ contracts.obj = function(name) {
 contracts.guard = function(ctc,val,pos,neg,loc) {
   if (ctc.isHigherOrder) {
     if (typeof(val) != "function") {
-      contracts.blame(pos, "a function", proc, "not a function","guard"); 
+      contracts.blame(pos, "a function", ctc, "not a function","guard"); 
     }
     else {
       var deferredNeg = { value: "not called" };
