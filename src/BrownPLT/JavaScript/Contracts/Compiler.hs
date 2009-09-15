@@ -106,7 +106,11 @@ exportRelease (InterfaceExport id _ contract) =
   ExprStmt noPos $ AssignExpr noPos OpAssign 
     (LDot noPos (ThisRef noPos) id)
     (DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos id))
-exportRelease _ = error "exportRelease: expected InterfaceItem"
+exportRelease (InterfaceInstance id _ _) =
+  ExprStmt noPos $ AssignExpr noPos OpAssign 
+    (LDot noPos (ThisRef noPos) id)
+    (DotRef noPos (VarRef noPos (Id noPos "impl")) (Id noPos id))
+exportRelease _ = error "exportRelease: expected InterfaceExport / Instance"
 
 
 -- Given source that reads:
@@ -194,10 +198,11 @@ compileRelease rawImpl implSource boilerplate interface namespace =
               Left err -> error (show err)
               Right (Script _ stmts) -> stmts
      exports = filter isInterfaceExport interface
-     exportStatements = renderStatements (map exportRelease exports)
+     instances = filter isInterfaceInstance interface
+     exportStatements = 
+       renderStatements (map exportRelease $ exports ++ instances)
      exportNames = [n | InterfaceExport n _ _ <- exports ]
-     instanceNames = 
-       [n | InterfaceInstance n _ _ <- filter isInterfaceInstance interface]
+     instanceNames =  [n | InterfaceInstance n _ _ <- instances]
      exposeStatements = renderStatements
        (exposeImplementation (exportNames ++ instanceNames))
      namespaceStatements = case namespace of
@@ -220,6 +225,7 @@ compileFormatted rawImpl implSource boilerplate interface =
               Left err -> error (show err)
               Right (Script _ stmts) -> stmts
      exports = filter isInterfaceExport interface
+     instances = filter isInterfaceInstance interface
      exportStatements = 
        renderStatements (concatMap makeExportStatements interface)
      exportNames = [n | InterfaceExport n _ _ <- exports ]
