@@ -10,6 +10,7 @@ import Control.Monad
 import BrownPLT.JavaScript.Contracts
 import Paths_JsContracts -- created by Cabal
 import BrownPLT.JavaScript.Parser (parseJavaScriptFromFile)
+import Data.List
 
 data Flag
   = Help
@@ -17,6 +18,7 @@ data Flag
   | Debug
   | Namespace String
   | Interface String
+  | NoExport
   deriving (Eq,Ord,Show)
       
 
@@ -30,6 +32,8 @@ options =
       "enable contracts and encapsulate (default)"
   , Option ['n'] ["namespace"] (ReqArg Namespace "NAMESPACE")
       "exports names to the namespace"
+  , Option [] ["no-export"] (NoArg NoExport)
+     "do not export names to the global object"
   , Option ['i'] ["interface"] (ReqArg Interface "PATH")
       "path to the interface; uses module.jsi by default"
   ]
@@ -40,7 +44,8 @@ usage = usageInfo
 main = do
   args <- getArgs
   dataDir <- getDataDir
-  let (opts, nonOpts, errors) = getOpt RequireOrder options args
+  let (opts', nonOpts, errors) = getOpt Permute options args
+  let opts = sort opts'
   unless (null errors) $ do
     mapM_ putStrLn  errors
     fail "jscc terminated"
@@ -48,6 +53,7 @@ main = do
   (isDebugMode, opts) <- getDebugMode opts
   (namespace, opts) <- getNamespace opts
   (ifacePath, opts) <- getInterfacePath opts nonOpts
+  (isExport, opts) <- getExportGlobals opts
   when (not $ null opts) $ do
     putStrLn $ "spurious arguments: " ++ (show opts)
     fail "jscc terminated"
@@ -60,9 +66,9 @@ main = do
       interface <- parseInterface ifacePath
       let result = if isDebugMode
                      then compileFormatted rawImpl implPath rawBoilerplate 
-                            interface
+                            isExport interface
                      else compileRelease rawImpl implPath rawBoilerplate
-                            interface namespace
+                            isExport interface namespace
       putStrLn result
       return () 
     otherwise -> do
@@ -86,6 +92,9 @@ checkHelp (Help:_) = do
   putStrLn usage
   exitSuccess
 checkHelp _ = return ()
+
+getExportGlobals (NoExport:rest) = return (False, rest)
+getExportGlobals rest = return (True, rest)
 
 getInterfacePath :: [Flag] -> [String] -> IO (FilePath,[Flag])
 getInterfacePath (Interface path:rest) _ = do

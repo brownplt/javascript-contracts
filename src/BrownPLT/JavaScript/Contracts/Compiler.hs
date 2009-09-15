@@ -187,10 +187,11 @@ libraryHeader =
 compileRelease :: String -- ^implementation
                -> String -- ^implementation source
                -> String -- ^contract library
+               -> Bool -- ^export?
                -> [InterfaceItem] -- ^the interface
                -> Maybe String -- ^the namespace name
                -> String -- ^encapsulated implementation
-compileRelease rawImpl implSource boilerplate interface namespace =
+compileRelease rawImpl implSource boilerplate isExport interface namespace =
   libraryHeader ++ (renderStatements $ escapeGlobals impl exportNames) 
     ++ rawImpl ++ exposeStatements ++ "\n}).apply(impl,[]);\n" 
     ++ exportStatements ++ namespaceStatements ++ "\n})();" where
@@ -199,8 +200,9 @@ compileRelease rawImpl implSource boilerplate interface namespace =
               Right (Script _ stmts) -> stmts
      exports = filter isInterfaceExport interface
      instances = filter isInterfaceInstance interface
-     exportStatements = 
-       renderStatements (map exportRelease $ exports ++ instances)
+     exportStatements = case isExport of
+       True -> renderStatements (map exportRelease $ exports ++ instances)
+       False -> ""
      exportNames = [n | InterfaceExport n _ _ <- exports ]
      instanceNames =  [n | InterfaceInstance n _ _ <- instances]
      exposeStatements = renderStatements
@@ -212,9 +214,10 @@ compileRelease rawImpl implSource boilerplate interface namespace =
 compileFormatted :: String -- ^implementation
                  -> String -- ^implementation source
                  -> String -- ^contract library
+                 -> Bool -- ^export?
                  -> [InterfaceItem] -- ^the interface
                  -> String -- ^encapsulated implementation
-compileFormatted rawImpl implSource boilerplate interface =
+compileFormatted rawImpl implSource boilerplate isExport interface =
   libraryHeader ++ (renderStatements $ escapeGlobals impl exportNames) 
     ++ rawImpl
     ++ exposeStatements ++ "\n}).apply(impl,[]);\n" ++ boilerplate 
@@ -224,10 +227,11 @@ compileFormatted rawImpl implSource boilerplate interface =
      impl = case parseScriptFromString implSource rawImpl of
               Left err -> error (show err)
               Right (Script _ stmts) -> stmts
-     exports = filter isInterfaceExport interface
+     exports =filter isInterfaceExport interface
      instances = filter isInterfaceInstance interface
-     exportStatements = 
-       renderStatements (concatMap makeExportStatements interface)
+     exportStatements = case isExport of
+       True -> renderStatements (concatMap makeExportStatements interface)
+       False -> ""
      exportNames = [n | InterfaceExport n _ _ <- exports ]
      aliases = filter isInterfaceAlias interface
      aliasStatements = renderStatements (compileAliases interface)
