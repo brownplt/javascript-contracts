@@ -10,7 +10,8 @@ contracts.map = function(f,arr) {
 
 contracts.zipWith = function(f,arr1,arr2) {
   var dest = [ ];
-  for (var i = 0; i < arr1.length; i++) {
+  var len = Math.min(arr1.length, arr2.length);
+  for (var i = 0; i < len; i++) {
     dest.push(f(arr1[i],arr2[i]));
   }
   return dest;
@@ -260,7 +261,7 @@ contracts.obj = function(name) {
 // if !ctc.isHigherOrder, the name of the calling context is the name of the
 // definition point (neg)
 contracts.guard = function(ctc,val,pos,neg,loc) {
-  if (ctc.isHigherOrder) {
+  if (false) {
     if (typeof(val) != "function") {
       contracts.blame(pos, "a function", ctc, "not a function","guard"); 
     }
