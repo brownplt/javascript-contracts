@@ -1,3 +1,8 @@
+// The type of a contract combinator is: name -> args ... -> contract
+//
+// name is a human-readable name for the contract.  args .. are constructor-
+// specified arguments and contract is the resulting contract.
+
 var contracts = { };
 
 contracts.map = function(f,arr) {
@@ -8,6 +13,7 @@ contracts.map = function(f,arr) {
   return dest;
 };
 
+
 contracts.zipWith = function(f,arr1,arr2) {
   var dest = [ ];
   var len = Math.min(arr1.length, arr2.length);
@@ -16,6 +22,7 @@ contracts.zipWith = function(f,arr1,arr2) {
   }
   return dest;
 };
+
 
 contracts.blame = function(guilty,expected,received,message,loc) {
   var guiltyMsg = typeof(guilty) == "string" 
@@ -32,12 +39,7 @@ contracts.blame = function(guilty,expected,received,message,loc) {
   throw err;
 }
 
-// The type of a contract combinator is: name -> args ... -> contract
-//
-// name is a human-readable name for the contract.  args .. are constructor-
-// specified arguments and contract is the resulting contract.
  
-
 contracts.flat = function(name) {
   return function(pred) {
     return {
@@ -94,6 +96,7 @@ contracts.unsizedArray = function(name) {
   };
 };
 
+
 contracts.fixedArray = function(name) {
   return function() {
     var elts = arguments;
@@ -139,9 +142,11 @@ contracts.fixedArray = function(name) {
   };
 };
 
+
 contracts.isUndefined = contracts.flat(function(val) { 
   return val === undefined;
 });
+
 
 contracts.varArityFunc = function(name) {
   return function(fixedArgs,restArgs,result) {
@@ -186,6 +191,7 @@ contracts.varArityFunc = function(name) {
   };
 };
 
+
 // Ensures value is an instanceof constr before checking that its shape
 // matches sig. constrId is a human-readable name for the constructor.
 contracts.instance = function(name) {
@@ -216,6 +222,7 @@ contracts.instance = function(name) {
     };
   };
 };
+
 
 contracts.obj = function(name) {
   return function(sig) {
@@ -254,6 +261,7 @@ contracts.obj = function(name) {
   };
 };
 
+
 // pos is the name of val.  neg should be the name of the calling context.
 // Since we do not rewrite call-sites, neg is simply "client".
 // However, if ctc.isHigherOrder, we can determine the name of the calling
@@ -278,6 +286,7 @@ contracts.guard = function(ctc,val,pos,neg,loc) {
     return ctc.client(neg,loc)(ctc.server(pos,loc)(val));
   }
 };
+
 
 // Derived from http://eriwen.com/javascript/js-stack-trace/
 contracts.stackTrace = function() {
