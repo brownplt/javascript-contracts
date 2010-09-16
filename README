@@ -1,0 +1,7 @@
+JavaScript Contracts
+====================
+
+This software succeeds the implementation described in the following paper:
+
+Arjun Guha, Jacob Matthews, Robert Bruce Findler, and Shriram Krishnamurthi.
+Relationally-Parametric Polymorphic Contracts. DLS 2007.
